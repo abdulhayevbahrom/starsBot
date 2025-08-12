@@ -905,9 +905,8 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`http://localhost:${PORT} da server ishga tushdi`);
-  bot.setWebHook(
-    `${process.env.RENDER_PUBLIC_URL}/bot${process.env.BOT_TOKEN}`
-  );
+  // Webhook URL — to‘g‘ridan-to‘g‘ri Vercel domenini ishlatamiz
+  bot.setWebHook(`https://stars-bot.vercel.app/bot${process.env.BOT_TOKEN}`);
 
   // 🔄 5 daqiqada bir marta o‘zini ping qiladi
   setInterval(() => {
@@ -916,6 +915,11 @@ app.listen(PORT, () => {
       .catch((err) => console.error("❌ Self-ping xatosi:", err.message));
   }, 5 * 60 * 1000);
 });
+// app.post(`/bot${process.env.BOT_TOKEN}`, (req, res) => {
+//   bot.processUpdate(req.body);
+//   res.sendStatus(200);
+// });
+
 app.post(`/bot${process.env.BOT_TOKEN}`, (req, res) => {
   bot.processUpdate(req.body);
   res.sendStatus(200);
