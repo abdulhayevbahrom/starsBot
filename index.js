@@ -28,7 +28,7 @@ import cors from "cors";
 
 connectDB();
 
-const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
+const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: false });
 const REQUIRED_CHANNEL = process.env.REQUIRED_CHANNEL;
 const ADMIN_CHAT_ID = Number(process.env.ADMIN_CHAT_ID);
 const BOT_USERNAME = process.env.BOT_USERNAME;
@@ -907,6 +907,16 @@ const PORT = process.env.PORT || 5000;
 // Main serverless function
 export default async function handler(req, res) {
   try {
+    app.use(express.json());
+    app.post(`/bot${process.env.BOT_TOKEN}`, (req, res) => {
+      bot.processUpdate(req.body);
+      res.sendStatus(200);
+    });
+
+    // Webhook’ni Telegram’ga ulash
+    bot.setWebHook(
+      `${process.env.RENDER_EXTERNAL_URL}/bot${process.env.BOT_TOKEN}`
+    );
     // Health check endpoint
     if (req.method === "GET" && req.url === "/ping") {
       return res.status(200).json({
