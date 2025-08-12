@@ -9,9 +9,7 @@ const router = express.Router();
 
 import dayjs from "dayjs";
 
-import * as Payment from "./models/Payments.js";
-// yoki
-// import { Payment } from "./models/Payments.js";
+import Payment from "./models/Payments.js";
 
 router.post("/paynet", async (req, res) => {
   const { id, method, params } = req.body;
@@ -190,11 +188,11 @@ router.post("/paynet", async (req, res) => {
         });
     }
   } catch (err) {
-    console.error(err);
+    console.log(">>>>>>>>>>>>>>", err);
     return res.json({
       jsonrpc: "2.0",
       id: id || null,
-      error: { code: -32603, message: "Tizim xatosi" },
+      error: { code: -32603, message: "Tizim xatosi", err },
     });
   }
 });
