@@ -17,10 +17,10 @@ import TelegramBot from "node-telegram-bot-api";
 import express from "express";
 import connectDB from "./db/db.js";
 import paynetRouter from "./router.js";
-import * as User from "./models/User.js";
-import * as Price from "./models/Price.js";
-import * as Payment from "./models/Payments.js";
-import * as Counter from "./models/Counter.js";
+import User from "./models/User.js";
+import Price from "./models/Price.js";
+import Payment from "./models/Payments.js";
+import Counter from "./models/Counter.js";
 import cors from "cors";
 import fetch from "node-fetch";
 

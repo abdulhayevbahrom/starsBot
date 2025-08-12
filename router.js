@@ -123,9 +123,6 @@ router.post("/paynet", async (req, res) => {
             timestamp: dayjs().format("YYYY-MM-DD HH:mm:ss"),
             providerTrnId: exactUser._id,
             fields: {
-              username: exactUser.username,
-              firstName: exactUser.firstName,
-              type: exactUser.type,
               message: "To‘lov muvaffaqiyatli amalga oshirildi",
             },
           },
