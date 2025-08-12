@@ -8,6 +8,7 @@ const Price = require("./models/Price");
 const Payment = require("./models/Payments");
 const Counter = require("./models/Counter");
 const cors = require("cors");
+const fetch = require("node-fetch");
 
 connectDB();
 
@@ -878,12 +879,23 @@ app.use(express.json());
 app.use(cors());
 app.use("/api", paynetRouter);
 
+app.get("/ping", (req, res) => {
+  res.json({ message: "Server alive ✅", time: new Date() });
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server ${PORT}-portda ishga tushdi`);
   bot.setWebHook(
     `${process.env.RENDER_PUBLIC_URL}/bot${process.env.BOT_TOKEN}`
   );
+
+  // 🔄 Self-ping qilish (5 daqiqada bir marta)
+  setInterval(() => {
+    fetch(`${process.env.VERCEL_URL || process.env.RENDER_PUBLIC_URL}/ping`)
+      .then(() => console.log("🔄 Self-ping yuborildi"))
+      .catch((err) => console.error("❌ Self-ping xatosi:", err.message));
+  }, 5 * 60 * 1000);
 });
 
 app.post(`/bot${process.env.BOT_TOKEN}`, (req, res) => {
