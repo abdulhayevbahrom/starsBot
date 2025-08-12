@@ -941,3 +941,9 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Internal server error" });
   }
 }
+
+
+const PORT = process.env.PORT || 5000; // OnRender PORT environment o‘zgaruvchisini ishlatadi
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
