@@ -1,14 +1,28 @@
-require("dotenv").config();
-const TelegramBot = require("node-telegram-bot-api");
-const express = require("express");
-const connectDB = require("./db/db");
-const paynetRouter = require("./router");
-const User = require("./models/User");
-const Price = require("./models/Price");
-const Payment = require("./models/Payments");
-const Counter = require("./models/Counter");
-const cors = require("cors");
-const fetch = require("node-fetch");
+// require("dotenv").config();
+// const TelegramBot = require("node-telegram-bot-api");
+// const express = require("express");
+// const connectDB = require("./db/db");
+// const paynetRouter = require("./router");
+// const User = require("./models/User");
+// const Price = require("./models/Price");
+// const Payment = require("./models/Payments");
+// const Counter = require("./models/Counter");
+// const cors = require("cors");
+// const fetch = require("node-fetch");
+
+import dotenv from "dotenv";
+dotenv.config();
+
+import TelegramBot from "node-telegram-bot-api";
+import express from "express";
+import connectDB from "./db/db.js";
+import paynetRouter from "./router.js";
+import * as User from "./models/User.js";
+import * as Price from "./models/Price.js";
+import * as Payment from "./models/Payments.js";
+import * as Counter from "./models/Counter.js";
+import cors from "cors";
+import fetch from "node-fetch";
 
 connectDB();
 
@@ -884,20 +898,20 @@ app.get("/ping", (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
+
 app.listen(PORT, () => {
   console.log(`🚀 Server ${PORT}-portda ishga tushdi`);
   bot.setWebHook(
     `${process.env.RENDER_PUBLIC_URL}/bot${process.env.BOT_TOKEN}`
   );
 
-  // 🔄 Self-ping qilish (5 daqiqada bir marta)
+  // 🔄 5 daqiqada bir marta o‘zini ping qiladi
   setInterval(() => {
     fetch(`https://stars-bot.vercel.app/ping`)
       .then(() => console.log("🔄 Self-ping yuborildi"))
       .catch((err) => console.error("❌ Self-ping xatosi:", err.message));
   }, 5 * 60 * 1000);
 });
-
 app.post(`/bot${process.env.BOT_TOKEN}`, (req, res) => {
   bot.processUpdate(req.body);
   res.sendStatus(200);

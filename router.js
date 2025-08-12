@@ -1,8 +1,17 @@
-const express = require("express");
+// const express = require("express");
+// const router = express.Router();
+// const dayjs = require("dayjs");
+// const USER_DB = require("./models/User");
+// const Payment = require("./models/Payments");
+
+import express from "express";
 const router = express.Router();
-const dayjs = require("dayjs");
-const USER_DB = require("./models/User");
-const Payment = require("./models/Payments");
+
+import dayjs from "dayjs";
+
+import * as Payment from "./models/Payments.js";
+// yoki
+// import { Payment } from "./models/Payments.js";
 
 router.post("/paynet", async (req, res) => {
   const { id, method, params } = req.body;
@@ -190,4 +199,5 @@ router.post("/paynet", async (req, res) => {
   }
 });
 
-module.exports = router;
+// module.exports = router;
+export default router;
