@@ -893,6 +893,10 @@ app.use(express.json());
 app.use(cors());
 app.use("/api", paynetRouter);
 
+app.get("/", (req, res) => {
+  res.send("🚀 Stars Bot serveri ishladi");
+});
+
 app.get("/ping", (req, res) => {
   res.json({ message: "Server alive ✅", time: new Date() });
 });
@@ -900,7 +904,7 @@ app.get("/ping", (req, res) => {
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server ${PORT}-portda ishga tushdi`);
+  console.log(`http://localhost:${PORT} da server ishga tushdi`);
   bot.setWebHook(
     `${process.env.RENDER_PUBLIC_URL}/bot${process.env.BOT_TOKEN}`
   );
