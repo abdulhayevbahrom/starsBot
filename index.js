@@ -22,9 +22,9 @@ import Price from "./models/Price.js";
 import Payment from "./models/Payments.js";
 import Counter from "./models/Counter.js";
 import cors from "cors";
-import keepAlive from "./keepalive.js";
+// import keepAlive from "./keepalive.js";
 
-keepAlive(); // Start the keep-alive function
+// keepAlive(); // Start the keep-alive function
 
 connectDB();
 

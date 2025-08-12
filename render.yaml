@@ -1,0 +1,56 @@
+# render.yaml
+services:
+  - type: web
+    name: stars-telegram-bot # Blueprint nomiga moslashtiring
+    env: node
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: BOT_TOKEN
+        fromDatabase:
+          name: bot-secrets
+          type: key/value
+          key: BOT_TOKEN
+      - key: RENDER_EXTERNAL_URL
+        fromDatabase:
+          name: bot-secrets
+          type: key/value
+          key: RENDER_EXTERNAL_URL
+      - key: REQUIRED_CHANNEL
+        fromDatabase:
+          name: bot-secrets
+          type: key/value
+          key: REQUIRED_CHANNEL
+      - key: ADMIN_CHAT_ID
+        fromDatabase:
+          name: bot-secrets
+          type: key/value
+          key: ADMIN_CHAT_ID
+      - key: BOT_USERNAME
+        fromDatabase:
+          name: bot-secrets
+          type: key/value
+          key: BOT_USERNAME
+      - key: SUPPORT_USERNAME
+        fromDatabase:
+          name: bot-secrets
+          type: key/value
+          key: SUPPORT_USERNAME
+    autoDeploy: true
+    regions:
+      - frankfurt # Server joylashuvi (o‘zingizga moslashtiring)
+
+  - type: cron
+    name: ping-keepalive
+    schedule: "*/10 * * * *" # Har 10 daqiqada ishlaydi
+    env: node
+    buildCommand: npm install
+    startCommand: node keepalive.js
+    envVars:
+      - key: RENDER_EXTERNAL_URL
+        fromDatabase:
+          name: bot-secrets
+          type: key/value
+          key: RENDER_EXTERNAL_URL
