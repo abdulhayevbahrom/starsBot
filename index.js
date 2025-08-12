@@ -902,30 +902,31 @@ app.get("/ping", (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
+// Main serverless function
+export default async function handler(req, res) {
+  try {
+    // Health check endpoint
+    if (req.method === 'GET' && req.url === '/ping') {
+      return res.status(200).json({ 
+        message: "Server alive ✅", 
+        time: new Date().toISOString() 
+      });
+    }
 
-// app.listen(PORT, () => {
-//   console.log(`http://localhost:${PORT} da server ishga tushdi`);
-//   // Webhook URL — to‘g‘ridan-to‘g‘ri Vercel domenini ishlatamiz
-//   bot.setWebHook(`https://stars-bot.vercel.app/bot${process.env.BOT_TOKEN}`);
+    // Webhook endpoint
+    if (req.method === 'POST' && req.body) {
+      await processUpdate(req.body);
+      return res.status(200).json({ ok: true });
+    }
 
-//   // 🔄 5 daqiqada bir marta o‘zini ping qiladi
-//   setInterval(() => {
-//     fetch(`https://stars-bot.vercel.app/ping`)
-//       .then(() => console.log("🔄 Self-ping yuborildi"))
-//       .catch((err) => console.error("❌ Self-ping xatosi:", err.message));
-//   }, 5 * 60 * 1000);
-// });
+    // Default response
+    return res.status(200).json({ 
+      message: "🚀 Stars Bot serveri ishladi",
+      time: new Date().toISOString()
+    });
 
-app.post(`/bot${process.env.BOT_TOKEN}`, (req, res) => {
-  bot.processUpdate(req.body);
-  res.sendStatus(200);
-});
-
-// 5 daqiqada bir self-ping (faqat serverlessda ishlamaydi, cron kerak)
-setInterval(() => {
-  fetch(`https://stars-bot.vercel.app/ping`)
-    .then(() => console.log("🔄 Self-ping yuborildi"))
-    .catch((err) => console.error("❌ Self-ping xatosi:", err.message));
-}, 5 * 60 * 1000);
-
-export default app;
+  } catch (error) {
+    console.error("Handler error:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
