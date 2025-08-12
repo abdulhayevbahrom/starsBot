@@ -40,7 +40,7 @@ services:
           key: SUPPORT_USERNAME
     autoDeploy: true
     regions:
-      - frankfurt # Server joylashuvi (o‘zingizga moslashtiring)
+      - frankfurt # Faqat web xizmatiga tegishli
 
   - type: cron
     name: ping-keepalive
