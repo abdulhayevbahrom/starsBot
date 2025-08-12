@@ -892,7 +892,7 @@ app.listen(PORT, () => {
 
   // 🔄 Self-ping qilish (5 daqiqada bir marta)
   setInterval(() => {
-    fetch(`${process.env.VERCEL_URL || process.env.RENDER_PUBLIC_URL}/ping`)
+    fetch(`https://stars-bot.vercel.app/ping`)
       .then(() => console.log("🔄 Self-ping yuborildi"))
       .catch((err) => console.error("❌ Self-ping xatosi:", err.message));
   }, 5 * 60 * 1000);
