@@ -1,14 +1,19 @@
-// api/keepalive.js - Keep server alive
-export default function handler(req, res) {
-  const timestamp = new Date().toISOString();
+// keepalive.js
+import fetch from "node-fetch";
 
-  console.log(`🔄 Keep-alive ping received at ${timestamp}`);
-
-  res.status(200).json({
-    status: "alive",
-    timestamp,
-    message: "Bot server is running",
-    method: req.method,
-    url: req.url,
-  });
+function keepAlive() {
+  setInterval(async () => {
+    try {
+      const response = await fetch(`${process.env.RENDER_EXTERNAL_URL}/ping`);
+      if (response.ok) {
+        console.log("Ping successful at:", new Date().toISOString());
+      } else {
+        console.log("Ping failed with status:", response.status);
+      }
+    } catch (error) {
+      console.error("Ping error:", error.message);
+    }
+  }, 10 * 60 * 1000); // 10 daqiqa = 600,000 millisekund
 }
+
+export default keepAlive;

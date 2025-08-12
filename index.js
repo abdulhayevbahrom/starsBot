@@ -22,7 +22,9 @@ import Price from "./models/Price.js";
 import Payment from "./models/Payments.js";
 import Counter from "./models/Counter.js";
 import cors from "cors";
-import fetch from "node-fetch";
+import keepAlive from "./keepalive.js";
+
+keepAlive(); // Start the keep-alive function
 
 connectDB();
 
@@ -906,25 +908,24 @@ const PORT = process.env.PORT || 5000;
 export default async function handler(req, res) {
   try {
     // Health check endpoint
-    if (req.method === 'GET' && req.url === '/ping') {
-      return res.status(200).json({ 
-        message: "Server alive ✅", 
-        time: new Date().toISOString() 
+    if (req.method === "GET" && req.url === "/ping") {
+      return res.status(200).json({
+        message: "Server alive ✅",
+        time: new Date().toISOString(),
       });
     }
 
     // Webhook endpoint
-    if (req.method === 'POST' && req.body) {
+    if (req.method === "POST" && req.body) {
       await processUpdate(req.body);
       return res.status(200).json({ ok: true });
     }
 
     // Default response
-    return res.status(200).json({ 
+    return res.status(200).json({
       message: "🚀 Stars Bot serveri ishladi",
-      time: new Date().toISOString()
+      time: new Date().toISOString(),
     });
-
   } catch (error) {
     console.error("Handler error:", error);
     return res.status(500).json({ error: "Internal server error" });
