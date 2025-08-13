@@ -27,8 +27,18 @@ import cors from "cors";
 // keepAlive(); // Start the keep-alive function
 
 connectDB();
+let bot;
+// const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
+// Lokal yoki serverga qarab sozlash
+if (process.env.NODE_ENV === "production") {
+  bot = new TelegramBot(process.env.BOT_TOKEN, { polling: false });
+  bot.setWebHook(
+    `${process.env.RENDER_PUBLIC_URL}/bot${process.env.BOT_TOKEN}`
+  );
+} else {
+  bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
+}
 
-const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: false });
 const REQUIRED_CHANNEL = process.env.REQUIRED_CHANNEL;
 const ADMIN_CHAT_ID = Number(process.env.ADMIN_CHAT_ID);
 const BOT_USERNAME = process.env.BOT_USERNAME;
@@ -673,8 +683,6 @@ async function handleUserCommands(chatId, userId, text, msg, userStates) {
         status: false, // Pending confirmation
         order_id: orderId,
       });
-
-      console.log(`Payment saved: ${payment._id}`);
     } catch (error) {
       console.error("Error saving payment:", error);
       await bot.sendMessage(chatId, "❌ To'lovni saqlashda xatolik yuz berdi.");
@@ -805,8 +813,6 @@ async function handleUserCommands(chatId, userId, text, msg, userStates) {
         status: false, // Pending confirmation
         order_id: orderId,
       });
-
-      console.log(`Payment saved: ${payment._id}`);
     } catch (error) {
       console.error("Error saving payment:", error);
       await bot.sendMessage(chatId, "❌ To'lovni saqlashda xatolik yuz berdi.");
@@ -903,47 +909,13 @@ app.get("/ping", (req, res) => {
   res.json({ message: "Server alive ✅", time: new Date() });
 });
 
-const PORT = process.env.PORT || 5000;
-// Main serverless function
-export default async function handler(req, res) {
-  try {
-    app.use(express.json());
-    app.post(`/bot${process.env.BOT_TOKEN}`, (req, res) => {
-      bot.processUpdate(req.body);
-      res.sendStatus(200);
-    });
+// Webhook route
+app.post(`/bot${process.env.BOT_TOKEN}`, (req, res) => {
+  bot.processUpdate(req.body);
+  res.sendStatus(200);
+});
 
-    // Webhook’ni Telegram’ga ulash
-    bot.setWebHook(
-      `${process.env.RENDER_EXTERNAL_URL}/bot${process.env.BOT_TOKEN}`
-    );
-    // Health check endpoint
-    if (req.method === "GET" && req.url === "/ping") {
-      return res.status(200).json({
-        message: "Server alive ✅",
-        time: new Date().toISOString(),
-      });
-    }
-
-    // Webhook endpoint
-    if (req.method === "POST" && req.body) {
-      await processUpdate(req.body);
-      return res.status(200).json({ ok: true });
-    }
-
-    // Default response
-    return res.status(200).json({
-      message: "🚀 Stars Bot serveri ishladi",
-      time: new Date().toISOString(),
-    });
-  } catch (error) {
-    console.error("Handler error:", error);
-    return res.status(500).json({ error: "Internal server error" });
-  }
-}
-
-
-const PORT = process.env.PORT || 5000; // OnRender PORT environment o‘zgaruvchisini ishlatadi
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`http://localhost:${PORT} da server ishga tushdi`);
 });
