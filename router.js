@@ -1,15 +1,13 @@
-// const express = require("express");
-// const router = express.Router();
-// const dayjs = require("dayjs");
-// const USER_DB = require("./models/User");
-// const Payment = require("./models/Payments");
-
 import express from "express";
-const router = express.Router();
-
 import dayjs from "dayjs";
-
+import utc from "dayjs/plugin/utc.js";
+import timezone from "dayjs/plugin/timezone.js";
 import Payment from "./models/Payments.js";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+const router = express.Router();
 
 router.post("/paynet", async (req, res) => {
   const { id, method, params } = req.body;
@@ -52,7 +50,9 @@ router.post("/paynet", async (req, res) => {
           id,
           result: {
             status: "0",
-            timestamp: dayjs().format("YYYY-MM-DD HH:mm:ss"),
+            timestamp: dayjs()
+              .tz("Asia/Tashkent")
+              .format("YYYY-MM-DD HH:mm:ss"),
             fields: {
               amount: user.amount,
             },
@@ -120,7 +120,9 @@ router.post("/paynet", async (req, res) => {
           jsonrpc: "2.0",
           id,
           result: {
-            timestamp: dayjs().format("YYYY-MM-DD HH:mm:ss"),
+            timestamp: dayjs()
+              .tz("Asia/Tashkent")
+              .format("YYYY-MM-DD HH:mm:ss"),
             providerTrnId: exactUser._id,
             fields: {
               message: "To‘lov muvaffaqiyatli amalga oshirildi",
@@ -147,7 +149,9 @@ router.post("/paynet", async (req, res) => {
           id,
           result: {
             transactionState: transaction.status ? 1 : 2,
-            timestamp: dayjs().format("YYYY-MM-DD HH:mm:ss"),
+            timestamp: dayjs()
+              .tz("Asia/Tashkent")
+              .format("YYYY-MM-DD HH:mm:ss"),
             providerTrnId: transaction._id,
           },
         });
@@ -171,7 +175,9 @@ router.post("/paynet", async (req, res) => {
               transactionId: item.transactionId,
               amount: item.amount * 100,
               providerTrnId: item._id,
-              timestamp: dayjs(item.createdAt).format("YYYY-MM-DD HH:mm:ss"),
+              timestamp: dayjs()
+                .tz("Asia/Tashkent")
+                .format("YYYY-MM-DD HH:mm:ss"),
             })),
           },
         });
