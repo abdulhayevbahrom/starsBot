@@ -107,7 +107,7 @@ router.post("/paynet", async (req, res) => {
             id,
             error: {
               code: 201,
-              message: "Bunday Transakziya raqamiga to‘lov mavjud",
+              message: "Транзакция уже существует",
             },
           });
         }
@@ -149,7 +149,7 @@ router.post("/paynet", async (req, res) => {
           id,
           result: {
             transactionState: transaction.status ? 1 : 2,
-            timestamp: dayjs()
+            timestamp: dayjs(transaction.updatedAt)
               .tz("Asia/Tashkent")
               .format("YYYY-MM-DD HH:mm:ss"),
             providerTrnId: transaction._id,
@@ -175,7 +175,7 @@ router.post("/paynet", async (req, res) => {
               transactionId: item.transactionId,
               amount: item.amount * 100,
               providerTrnId: item._id,
-              timestamp: dayjs()
+              timestamp: dayjs(transactions.updatedAt)
                 .tz("Asia/Tashkent")
                 .format("YYYY-MM-DD HH:mm:ss"),
             })),
