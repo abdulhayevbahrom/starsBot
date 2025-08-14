@@ -175,7 +175,7 @@ router.post("/paynet", async (req, res) => {
               transactionId: item.transactionId,
               amount: item.amount * 100,
               providerTrnId: item._id,
-              timestamp: dayjs(transactions.updatedAt)
+              timestamp: dayjs(item.updatedAt)
                 .tz("Asia/Tashkent")
                 .format("YYYY-MM-DD HH:mm:ss"),
               providerTrnId: transactions._id,
