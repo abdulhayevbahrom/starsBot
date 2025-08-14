@@ -178,6 +178,7 @@ router.post("/paynet", async (req, res) => {
               timestamp: dayjs(transactions.updatedAt)
                 .tz("Asia/Tashkent")
                 .format("YYYY-MM-DD HH:mm:ss"),
+              providerTrnId: transactions._id,
             })),
           },
         });
