@@ -716,7 +716,7 @@ async function handleUserCommands(chatId, userId, text, msg, userStates) {
               },
               {
                 text: "💳 Paynet orqali to'lash",
-                url: "https://t.me/m/8YE5e4r-MzAy",
+                url: "https://app.paynet.uz/?m=49036",
               },
             ],
             [{ text: "🔙 Ortga", callback_data: "back_to_main" }],
