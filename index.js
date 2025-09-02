@@ -835,7 +835,7 @@ async function handleUserCommands(chatId, userId, text, msg, userStates) {
 
     return bot.sendMessage(
       chatId,
-      `✅ Buyurtma tayyor!\n\nPaket: ${selectedPackage}\nNarxi: ${price} so'm\nKimga: ${recipient}\n�ID Buyurtma: ${orderId}`,
+      `✅ Buyurtma tayyor!\n\nPaket: ${selectedPackage}\nNarxi: ${price} so'm\nKimga: ${recipient}\n🆔 Buyurtma raqami: ${orderId}`,
       {
         reply_markup: {
           inline_keyboard: [
@@ -846,7 +846,7 @@ async function handleUserCommands(chatId, userId, text, msg, userStates) {
               },
               {
                 text: "💳 Paynet orqali to'lash",
-                url: "https://t.me/m/8YE5e4r-MzAy",
+                url: "https://app.paynet.uz/?m=49036",
               },
             ],
             [{ text: "🔙 Ortga", callback_data: "back_to_main" }],
