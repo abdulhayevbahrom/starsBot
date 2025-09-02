@@ -705,7 +705,7 @@ async function handleUserCommands(chatId, userId, text, msg, userStates) {
 
     return bot.sendMessage(
       chatId,
-      `✅ Buyurtma tayyor!\n\n⭐ ${starAmount} ta star\nNarxi: ${price} so'm\nKimga: ${recipient}\n�ID Buyurtma: ${orderId}`,
+      `✅ Buyurtma tayyor!\n\n⭐ ${starAmount} ta star\nNarxi: ${price} so'm\nKimga: ${recipient}\n🆔 Buyurtma raqami: ${orderId}`,
       {
         reply_markup: {
           inline_keyboard: [
