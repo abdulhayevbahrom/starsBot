@@ -9,6 +9,8 @@ import uzumController from "../modules/fragment/uzumController.js";
 import paynetController from "../modules/fragment/paynetController.js";
 import paynetMlbb from "../modules/mlbb/paynetMlbb.js";
 
+import pubgController from "../modules/pubg/pubgController.js";
+
 import middlewares from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
@@ -66,6 +68,34 @@ router.post(
   [middlewares.auth, middlewares.checkServiceId],
   mlbbController.status
 );
+
+// pubg
+
+router.post(
+  "/uzum/pubg/check",
+  [middlewares.auth, middlewares.checkServiceId],
+  pubgController.check
+);
+
+router.post(
+  "/uzum/pubg/create",
+  [middlewares.auth, middlewares.checkServiceId],
+  pubgController.create
+);
+
+router.post(
+  "/uzum/pubg/confirm",
+  [middlewares.auth, middlewares.checkServiceId],
+  pubgController.confirm
+);
+
+router.post(
+  "/uzum/pubg/status",
+  [middlewares.auth, middlewares.checkServiceId],
+  pubgController.status
+);
+
+// ===========================================================
 
 // Paynet tg
 router.post("/paynet/tg", (req, res) => {

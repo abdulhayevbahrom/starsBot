@@ -9,7 +9,6 @@ const PORT = process.env.PORT || 8070;
 const app = express();
 
 await connectDB();
-
 app.use(express.json());
 app.use(helmet());
 

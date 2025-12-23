@@ -369,11 +369,11 @@ class UzumController {
         });
       }
 
-      if (existingOrder?.status !== "success") {
+      if (existingOrder?.status === "reversed") {
         return res.json({
           serviceId: serviceId,
           transId: transId,
-          status: "FAILED",
+          status: "REVERSED",
           transTime: existingOrder?.updatedAt
             ? new Date(existingOrder.updatedAt).getTime()
             : new Date().getTime(),
@@ -412,6 +412,18 @@ class UzumController {
           amount: existingOrder.amount * 100, // tiyinda
         });
       }
+
+      return res.json({
+        serviceId: serviceId,
+        transId: transId,
+        status: "FAILED",
+        transTime: existingOrder?.updatedAt
+          ? new Date(existingOrder.updatedAt).getTime()
+          : new Date().getTime(),
+        confirmTime: null,
+        reverseTime: null,
+        errorCode: "10014",
+      });
     } catch (err) {
       console.error("Uzum status error:", err);
       return res.json({

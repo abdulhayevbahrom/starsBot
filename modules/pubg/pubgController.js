@@ -1,47 +1,30 @@
 import bot from "../../bot/botConfig.js";
-import MLBB from "../../models/mlbb.js";
-import axios from "axios";
+import PUBG from "../../models/pubg.js";
 
-let diamonds = [
+let uc_s = [
   {
-    diamonds: "55",
+    uc: "60",
     price: 13000,
   },
   {
-    diamonds: "86",
-    price: 18500,
+    uc: "325",
+    price: 60000,
   },
   {
-    diamonds: "172",
-    price: 35000,
+    uc: "660",
+    price: 120000,
   },
   {
-    diamonds: "275",
-    price: 55000,
+    uc: "1800",
+    price: 310000,
   },
   {
-    diamonds: "706",
-    price: 133000,
+    uc: "3850",
+    price: 5850000,
   },
   {
-    diamonds: "2195",
-    price: 408000,
-  },
-  {
-    diamonds: "3688",
-    price: 680000,
-  },
-  {
-    diamonds: "5532",
-    price: 1007000,
-  },
-  {
-    diamonds: "9228",
-    price: 1650000,
-  },
-  {
-    diamonds: "weekly",
-    price: 25000,
+    uc: "8100",
+    price: 1180000,
   },
 ];
 
@@ -51,9 +34,9 @@ class MLBBController {
   async check(req, res) {
     try {
       let { serviceId, params } = req.body;
-      let { user_id, zone_id, amount } = params;
+      let { player_id, player_name, amount } = params;
 
-      if (!amount || !user_id || !zone_id) {
+      if (!amount || !player_id || !player_name) {
         return res.json({
           serviceId: serviceId,
           timestamp: Date.now(),
@@ -61,18 +44,8 @@ class MLBBController {
           errorCode: "10005",
         });
       }
-      // agar bolsa notogri bolsa 10007
-      // agar bolmasa 10005
-      if (String(zone_id).startsWith("6")) {
-        return res.json({
-          serviceId: serviceId,
-          timestamp: Date.now(),
-          status: "FAILED",
-          errorCode: "10007",
-        });
-      }
 
-      let exact_price = diamonds.find((item) => item.diamonds === "" + amount);
+      let exact_price = uc_s.find((item) => item.uc === "" + amount);
 
       if (!exact_price) {
         return res.json({
@@ -85,29 +58,13 @@ class MLBBController {
 
       let price = exact_price.price;
 
-      let URL = "https://www.smile.one/merchant/mobilelegends/checkrole";
-
-      const { data } = await axios.post(URL, {
-        user_id,
-        zone_id,
-      });
-
-      // Agar mijoz mavjud bo‘lmasa (hozircha false)
-      if (data.code === 201) {
-        return res.json({
-          serviceId: serviceId,
-          timestamp: Date.now(),
-          status: "FAILED",
-          errorCode: "10007",
-        });
-      }
-
       return res.json({
         serviceId: serviceId,
         timestamp: Date.now(),
         status: "OK",
         data: {
-          name: { value: data.username },
+          player_name: { value: player_name },
+          player_id: { value: player_id },
           amount: { value: price + "" },
         },
       });
@@ -126,9 +83,9 @@ class MLBBController {
     try {
       let { serviceId, transId, price_amount } = req.body;
       let params = req.body.params;
-      let { user_id, zone_id, amount } = params;
+      let { player_id, player_name, amount } = params;
 
-      if (!amount || !user_id || !zone_id || !price_amount) {
+      if (!amount || !player_id || !player_name || !price_amount) {
         return res.json({
           serviceId: serviceId,
           timestamp: Date.now(),
@@ -138,7 +95,7 @@ class MLBBController {
       }
 
       // checl exact  transaction
-      let transaction = await MLBB.findOne({ transId: transId });
+      let transaction = await PUBG.findOne({ transId: transId });
 
       if (transaction) {
         return res.json({
@@ -150,7 +107,9 @@ class MLBBController {
         });
       }
 
-      if (String(zone_id).startsWith("6")) {
+      let exact_uc = uc_s.find((item) => item.uc === "" + amount);
+
+      if (!exact_uc) {
         return res.json({
           serviceId: serviceId,
           timestamp: Date.now(),
@@ -159,20 +118,7 @@ class MLBBController {
         });
       }
 
-      let exact_diamond = diamonds.find(
-        (item) => item.diamonds === "" + amount
-      );
-
-      if (!exact_diamond) {
-        return res.json({
-          serviceId: serviceId,
-          timestamp: Date.now(),
-          status: "FAILED",
-          errorCode: "10007",
-        });
-      }
-
-      if (price_amount !== exact_diamond.price * 100) {
+      if (price_amount !== exact_uc.price * 100) {
         return res.json({
           serviceId: serviceId,
           timestamp: Date.now(),
@@ -181,9 +127,9 @@ class MLBBController {
         });
       }
 
-      let order = await MLBB.create({
-        user_id,
-        zone_id,
+      let order = await PUBG.create({
+        player_id,
+        player_name,
         amount,
         price_amount: price_amount / 100,
         status: "success",
@@ -200,13 +146,13 @@ class MLBBController {
       }
 
       const message = [
-        `🆔 MLBB ID: <code>${user_id}</code>`,
-        `🌐 Zone ID: <code>${zone_id}</code>`,
-        `💎 Miqdori: <b>${amount}</b> diamonds`,
+        `🆔 Player ID: <code>${player_id}</code>`,
+        `👤 Player Name : <code>${player_name}</code>`,
+        `🪙 Miqdori: <b>${amount}</b> UC`,
         `📅 Sana: <i>${order.createdAt.toLocaleString()}</i>`,
       ].join("\n");
 
-      await bot.sendMessage(process.env.TG_GROUP_ID, message, {
+      await bot.sendMessage(process.env.TG_GROUP_ID_PUBG, message, {
         parse_mode: "HTML",
       });
 
@@ -243,7 +189,7 @@ class MLBBController {
         });
       }
 
-      let order = await MLBB.findOne({ transId: transId });
+      let order = await PUBG.findOne({ transId: transId });
 
       if (!order) {
         return res.json({
@@ -287,69 +233,6 @@ class MLBBController {
     }
   }
 
-  async reverse(req, res) {
-    try {
-      let { serviceId, transId } = req.body;
-
-      if (!transId) {
-        return res.json({
-          serviceId: serviceId,
-          timestamp: Date.now(),
-          status: "FAILED",
-          errorCode: "10005",
-        });
-      }
-
-      let order = await MLBB.findOne({ transId: transId });
-
-      if (!order) {
-        return res.json({
-          serviceId: serviceId,
-          transId: transId,
-          status: "FAILED",
-          errorCode: "10014",
-        });
-      }
-
-      let reversedOrder = await MLBB.findOneAndUpdate(
-        { transId: transId },
-        { status: "reversed" },
-        { new: true }
-      );
-
-      if (!reversedOrder) {
-        return res.json({
-          serviceId: serviceId,
-          transId: transId,
-          status: "FAILED",
-          reverseTime: new Date().getTime(),
-          errorCode: "10017",
-        });
-      }
-
-      return res.json({
-        serviceId,
-        transId,
-        status: "REVERSED",
-        reverseTime: reversedOrder?.updatedAt
-          ? new Date(reversedOrder.updatedAt).getTime()
-          : new Date(),
-        data: {
-          message: "Transaction bekor qilindi",
-        },
-        amount: reversedOrder.price_amount * 100,
-      });
-    } catch (error) {
-      console.log("uzum mlbb reverse error", error);
-      return res.json({
-        serviceId: req.body.serviceId,
-        timestamp: Date.now(),
-        status: "FAILED",
-        errorCode: "99999",
-      });
-    }
-  }
-
   async status(req, res) {
     try {
       let { serviceId, transId } = req.body;
@@ -363,7 +246,7 @@ class MLBBController {
         });
       }
 
-      let order = await MLBB.findOne({ transId: transId });
+      let order = await PUBG.findOne({ transId: transId });
 
       if (!order) {
         return res.json({
@@ -392,13 +275,6 @@ class MLBBController {
         });
       }
 
-      let URL = "https://www.smile.one/merchant/mobilelegends/checkrole";
-
-      const { data } = await axios.post(URL, {
-        user_id: order.user_id,
-        zone_id: order.zone_id,
-      });
-
       if (order.status === "success") {
         return res.json({
           serviceId: serviceId,
@@ -413,17 +289,14 @@ class MLBBController {
           reverseTime: null,
 
           data: {
-            name: {
-              value: data.username,
+            player_id: {
+              value: order.player_id,
+            },
+            player_id: {
+              value: order.player_id,
             },
             amount: {
               value: order.price_amount + "",
-            },
-            user_id: {
-              value: order.user_id,
-            },
-            zone_id: {
-              value: order.zone_id,
             },
           },
           amount: order.price_amount * 100,
