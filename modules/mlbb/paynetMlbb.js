@@ -45,30 +45,25 @@ let diamonds = [
   },
 ];
 
-// data faqat chekda va statisda
-
 class MLBBController {
-  async check(req, res) {
+  async getInformation(req, res) {
     try {
-      let { serviceId, params } = req.body;
-      let { user_id, zone_id, amount } = params;
+      let { id, params } = req.body;
+      let { user_id, zone_id, amount } = params.fields;
 
       if (!amount || !user_id || !zone_id) {
         return res.json({
-          serviceId: serviceId,
-          timestamp: Date.now(),
-          status: "FAILED",
-          errorCode: "10005",
+          jsonrpc: "2.0",
+          id,
+          error: { code: -32602, message: "Majburiy parametr yo‘q" },
         });
       }
-      // agar bolsa notogri bolsa 10007
-      // agar bolmasa 10005
+
       if (String(zone_id).startsWith("6")) {
         return res.json({
-          serviceId: serviceId,
-          timestamp: Date.now(),
-          status: "FAILED",
-          errorCode: "10007",
+          jsonrpc: "2.0",
+          id,
+          error: { code: 100, message: "zone id 6 bilan boshlanmasin" },
         });
       }
 
@@ -76,10 +71,12 @@ class MLBBController {
 
       if (!exact_price) {
         return res.json({
-          serviceId: serviceId,
-          timestamp: Date.now(),
-          status: "FAILED",
-          errorCode: "10007",
+          jsonrpc: "2.0",
+          id,
+          error: {
+            code: 304,
+            message: "diamond miqdori noto‘g‘ri",
+          },
         });
       }
 
@@ -95,67 +92,71 @@ class MLBBController {
       // Agar mijoz mavjud bo‘lmasa (hozircha false)
       if (data.code === 201) {
         return res.json({
-          serviceId: serviceId,
-          timestamp: Date.now(),
-          status: "FAILED",
-          errorCode: "10007",
+          jsonrpc: "2.0",
+          id,
+          error: {
+            code: 302,
+            message: "Mijoz ma'lumotlari topilmadi",
+          },
         });
       }
 
       return res.json({
-        serviceId: serviceId,
-        timestamp: Date.now(),
-        status: "OK",
-        data: {
-          name: { value: data.username },
-          amount: { value: price },
+        jsonrpc: "2.0",
+        id,
+        result: {
+          status: "0",
+          timestamp: dayjs().tz("Asia/Tashkent").format("YYYY-MM-DD HH:mm:ss"),
+          fields: {
+            name: data.username,
+            price: price * 100,
+          },
         },
       });
     } catch (error) {
-      console.log("uzum mlbb check error", error);
+      console.log("paynet mlbb check error", error);
       return res.json({
-        serviceId: req.body.serviceId,
-        timestamp: Date.now(),
-        status: "FAILED",
-        errorCode: "99999",
+        jsonrpc: "2.0",
+        id: id || null,
+        error: { code: -32603, message: "Tizim xatosi", err },
       });
     }
   }
 
-  async create(req, res) {
+  async performTransaction(req, res) {
     try {
-      let { serviceId, transId, price_amount } = req.body;
+      let { id } = req.body;
       let params = req.body.params;
-      let { user_id, zone_id, amount } = params;
+      let { user_id, zone_id, amount, price_amount, transactionId } =
+        params.fields;
 
-      if (!amount || !user_id || !zone_id || !price_amount) {
+      if (!amount || !user_id || !zone_id || !price_amount || !transactionId) {
         return res.json({
-          serviceId: serviceId,
-          timestamp: Date.now(),
-          status: "FAILED",
-          errorCode: "10005",
+          jsonrpc: "2.0",
+          id,
+          error: { code: -32602, message: "Majburiy parametr yo‘q" },
         });
       }
 
-      // checl exact  transaction
-      let transaction = await MLBB.findOne({ transId: transId });
+      // check exact  transaction
+      let transaction = await MLBB.findOne({ transId: transactionId });
 
       if (transaction) {
         return res.json({
-          serviceId,
-          transId: transId,
-          transTime: new Date(),
-          status: "FAILED",
-          errorCode: "10008",
+          jsonrpc: "2.0",
+          id,
+          error: {
+            code: 201,
+            message: "Транзакция уже существует",
+          },
         });
       }
 
       if (String(zone_id).startsWith("6")) {
         return res.json({
-          serviceId: serviceId,
-          timestamp: Date.now(),
-          status: "FAILED",
-          errorCode: "10007",
+          jsonrpc: "2.0",
+          id,
+          error: { code: 100, message: "zone id 6 bilan boshlanmasin" },
         });
       }
 
@@ -165,19 +166,20 @@ class MLBBController {
 
       if (!exact_diamond) {
         return res.json({
-          serviceId: serviceId,
-          timestamp: Date.now(),
-          status: "FAILED",
-          errorCode: "10007",
+          jsonrpc: "2.0",
+          id,
+          error: {
+            code: 304,
+            message: "diamond miqdori noto‘g‘ri",
+          },
         });
       }
 
       if (price_amount !== exact_diamond.price * 100) {
         return res.json({
-          serviceId: serviceId,
-          timestamp: Date.now(),
-          status: "FAILED",
-          errorCode: "10011",
+          jsonrpc: "2.0",
+          id,
+          error: { code: 413, message: "Narx noto‘g‘ri" },
         });
       }
 
@@ -192,10 +194,12 @@ class MLBBController {
 
       if (!order) {
         return res.json({
-          serviceId: serviceId,
-          timestamp: Date.now(),
-          status: "FAILED",
-          errorCode: "10009",
+          jsonrpc: "2.0",
+          id,
+          error: {
+            code: 102,
+            message: "Transakziya bekor qilindi",
+          },
         });
       }
 
@@ -211,21 +215,23 @@ class MLBBController {
       });
 
       return res.json({
-        serviceId: serviceId,
-        transId: transId,
-        status: "CREATED",
-        transTime: order?.createdAt
-          ? new Date(order.createdAt).getTime()
-          : new Date().getTime(),
-        data: {},
+        jsonrpc: "2.0",
+        id,
+        result: {
+          timestamp: dayjs().tz("Asia/Tashkent").format("YYYY-MM-DD HH:mm:ss"),
+          providerTrnId: order._id,
+          fields: {
+            price: exact_diamond.price * 100,
+            message: "To‘lov muvaffaqiyatli amalga oshirildi",
+          },
+        },
       });
     } catch (error) {
-      console.log("uzum mlbb create error", error);
+      console.log("paynet mlbb create error", error);
       return res.json({
-        serviceId: req.body.serviceId,
-        timestamp: new Date().getTime(),
-        status: "FAILED",
-        errorCode: "99999",
+        jsonrpc: "2.0",
+        id: id || null,
+        error: { code: -32603, message: "Tizim xatosi", err },
       });
     }
   }
@@ -262,7 +268,7 @@ class MLBBController {
           serviceId: serviceId,
           transId: transId,
           status: "FAILED",
-          confirmTime: null,
+          confirmTime: order.updatedAt || null,
           errorCode: "10015",
         });
       }
@@ -270,11 +276,11 @@ class MLBBController {
       return res.json({
         serviceId,
         transId,
-        confirmTime: order?.updatedAt
-          ? new Date(order.updatedAt).getTime()
-          : new Date().getTime(),
-        status: "CONFIRMED",
-        data: {},
+        confirmTime: order.updatedAt,
+        data: {
+          message: "Xarid muvaffaqiyatli amalga oshirildi",
+        },
+        amount: order.price_amount * 100,
       });
     } catch (error) {
       console.log("uzum mlbb confirm error", error);
@@ -392,13 +398,6 @@ class MLBBController {
         });
       }
 
-      let URL = "https://www.smile.one/merchant/mobilelegends/checkrole";
-
-      const { data } = await axios.post(URL, {
-        user_id: order.user_id,
-        zone_id: order.zone_id,
-      });
-
       if (order.status === "success") {
         return res.json({
           serviceId: serviceId,
@@ -411,20 +410,8 @@ class MLBBController {
             ? new Date(order.updatedAt).getTime()
             : new Date().getTime(),
           reverseTime: null,
-
           data: {
-            name: {
-              value: data.username,
-            },
-            amount: {
-              value: order.price_amount,
-            },
-            user_id: {
-              value: order.user_id,
-            },
-            zone_id: {
-              value: order.zone_id,
-            },
+            message: "Xarid muvaffaqiyatli amalga oshirildi",
           },
           amount: order.price_amount * 100,
         });

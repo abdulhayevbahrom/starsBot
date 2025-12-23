@@ -6,22 +6,67 @@ import * as controller from "../modules/fragment/fragment.controller.js";
 import tonkeeperRoutes from "../modules/tonkeeper/tonkeeper.routes.js";
 import mlbbController from "../modules/mlbb/mlbbController.js";
 import uzumController from "../modules/fragment/uzumController.js";
+import paynetController from "../modules/fragment/paynetController.js";
+
+import middlewares from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-router.post("/uzum/tg/check", uzumController.check);
-router.post("/uzum/tg/create", uzumController.create);
-router.post("/uzum/tg/confirm", uzumController.confirm);
-router.post("/uzum/tg/reverse", uzumController.reverse);
-router.post("/uzum/tg/status", uzumController.status);
+// Uzum
+router.post(
+  "/uzum/tg/check",
+  [middlewares.auth, middlewares.checkServiceId],
+  uzumController.check
+);
+router.post(
+  "/uzum/tg/create",
+  [middlewares.auth, middlewares.checkServiceId],
+  uzumController.create
+);
+router.post(
+  "/uzum/tg/confirm",
+  [middlewares.auth, middlewares.checkServiceId],
+  uzumController.confirm
+);
+router.post(
+  "/uzum/tg/reverse",
+  [middlewares.auth, middlewares.checkServiceId],
+  uzumController.reverse
+);
+router.post(
+  "/uzum/tg/status",
+  [middlewares.auth, middlewares.checkServiceId],
+  uzumController.status
+);
 
-router.post("/uzum/mlbb/check", mlbbController.check);
-router.post("/uzum/mlbb/create", mlbbController.create);
-router.post("/uzum/mlbb/confirm", mlbbController.confirm);
-router.post("/uzum/mlbb/reverse", mlbbController.reverse);
-router.post("/uzum/mlbb/status", mlbbController.status);
+// MLBB ----------------------------------------------------------------
+router.post(
+  "/uzum/mlbb/check",
+  [middlewares.auth, middlewares.checkServiceId],
+  mlbbController.check
+);
+router.post(
+  "/uzum/mlbb/create",
+  [middlewares.auth, middlewares.checkServiceId],
+  mlbbController.create
+);
+router.post(
+  "/uzum/mlbb/confirm",
+  [middlewares.auth, middlewares.checkServiceId],
+  mlbbController.confirm
+);
+router.post(
+  "/uzum/mlbb/reverse",
+  [middlewares.auth, middlewares.checkServiceId],
+  mlbbController.reverse
+);
+router.post(
+  "/uzum/mlbb/status",
+  [middlewares.auth, middlewares.checkServiceId],
+  mlbbController.status
+);
 
-// Module routes
+// Paynet tg
 router.post("paynet/", (req, res) => {
   let { method, id } = req.body;
 
@@ -34,23 +79,19 @@ router.post("paynet/", (req, res) => {
   }
 
   if (method === "GetInformation") {
-    return uzumController.getTelegramUser(req, res);
-  }
-  if (method === "getPrice") {
-    return getPrices(req, res);
+    return paynetController.getInformation(req, res);
   }
 
   if (method === "PerformTransaction") {
-    let type = req.body.params.fields.type;
-    if (type === "star") {
-      return controller.buyStars(req, res);
-    } else if (type === "premium") {
-      return controller.buyPremium(req, res);
-    }
+    return paynetController.performTransaction(req, res);
   }
 
   if (method === "CheckTransaction") {
-    return controller.checkTransaction(req, res);
+    return paynetController.checkTransaction(req, res);
+  }
+
+  if (method === "GetStatement") {
+    return paynetController.getStatement(req, res);
   }
 });
 

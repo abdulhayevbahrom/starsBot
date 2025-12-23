@@ -29,7 +29,7 @@ class UzumController {
           serviceId: serviceId,
           timestamp: Date.now(),
           status: "FAILED",
-          errorCode: "10009",
+          errorCode: "10007",
         });
       }
 
@@ -38,7 +38,7 @@ class UzumController {
           serviceId: serviceId,
           timestamp: Date.now(),
           status: "FAILED",
-          errorCode: "10009",
+          errorCode: "10007",
         });
       }
 
@@ -57,7 +57,7 @@ class UzumController {
           serviceId: serviceId,
           timestamp: Date.now(),
           status: "FAILED",
-          errorCode: "10009",
+          errorCode: "10007",
         });
       }
 
@@ -78,8 +78,12 @@ class UzumController {
         timestamp: Date.now(),
         status: "OK",
         data: {
-          name: data.name,
-          price: totalPrice * 100,
+          name: {
+            value: data.name,
+          },
+          amount: {
+            value: totalPrice,
+          },
         },
       });
     } catch (err) {
@@ -185,10 +189,7 @@ class UzumController {
           transTime: result?.order?.updatedAt
             ? new Date(result?.order?.updatedAt).getTime()
             : Date.now().getTime(),
-          data: {
-            message: "Xarid muvaffaqiyatli amalga oshirildi",
-          },
-          amount: amount,
+          data: {},
         });
       }
     } catch (err) {
@@ -227,7 +228,7 @@ class UzumController {
           serviceId: serviceId,
           timestamp: Date.now(),
           status: "FAILED",
-          errorCode: "10014",
+          errorCode: "10005",
         });
       }
 
@@ -250,9 +251,7 @@ class UzumController {
           serviceId: serviceId,
           transId: transId,
           status: "FAILED",
-          confirmTime: existingOrder?.updatedAt
-            ? new Date(existingOrder?.updatedAt).getTime()
-            : new Date().getTime(),
+          confirmTime: null,
           errorCode: "10015",
         });
       }
@@ -265,10 +264,7 @@ class UzumController {
           confirmTime: existingOrder?.updatedAt
             ? new Date(existingOrder?.updatedAt).getTime()
             : new Date().getTime(),
-          data: {
-            message: "Xarid muvaffaqiyatli amalga oshirildi",
-          },
-          amount: existingOrder.amount * 100,
+          data: {},
         });
       }
     } catch (err) {
@@ -358,7 +354,7 @@ class UzumController {
           serviceId: serviceId,
           timestamp: new Date().getTime(),
           status: "FAILED",
-          errorCode: "10014",
+          errorCode: "10005",
         });
       }
 
@@ -381,13 +377,21 @@ class UzumController {
           transTime: existingOrder?.updatedAt
             ? new Date(existingOrder.updatedAt).getTime()
             : new Date().getTime(),
-          confirmTime: existingOrder?.updatedAt
-            ? new Date(existingOrder.updatedAt).getTime()
-            : new Date().getTime(),
+          confirmTime: null,
           reverseTime: null,
           errorCode: "10014",
         });
       }
+
+      const url = `${process.env.API_BASE}/star/recipient/search?username=${username}&quantity=50`;
+      let headers = {
+        "API-Key": process.env.API_KEY,
+      };
+      const response = await fetch(url, {
+        headers,
+      });
+
+      let data = await response.json();
 
       if (existingOrder.status === "success") {
         return res.json({
@@ -398,9 +402,14 @@ class UzumController {
           confirmTime: existingOrder.updatedAt,
           reverseTime: null,
           data: {
-            message: "Xarid muvaffaqiyatli amalga oshirildi",
+            name: {
+              value: data.name,
+            },
+            amount: {
+              value: existingOrder.amount,
+            },
           },
-          amount: existingOrder.amount,
+          amount: existingOrder.amount * 100, // tiyinda
         });
       }
     } catch (err) {
