@@ -82,7 +82,7 @@ class UzumController {
             value: data.name,
           },
           amount: {
-            value: totalPrice,
+            value: totalPrice + "",
           },
         },
       });
@@ -406,7 +406,7 @@ class UzumController {
               value: data.name,
             },
             amount: {
-              value: existingOrder.amount,
+              value: existingOrder.amount + "",
             },
           },
           amount: existingOrder.amount * 100, // tiyinda

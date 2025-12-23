@@ -108,7 +108,7 @@ class MLBBController {
         status: "OK",
         data: {
           name: { value: data.username },
-          amount: { value: price },
+          amount: { value: price + "" },
         },
       });
     } catch (error) {
@@ -417,7 +417,7 @@ class MLBBController {
               value: data.username,
             },
             amount: {
-              value: order.price_amount,
+              value: order.price_amount + "",
             },
             user_id: {
               value: order.user_id,
