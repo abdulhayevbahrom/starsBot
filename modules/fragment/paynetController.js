@@ -5,7 +5,6 @@ import timezone from "dayjs/plugin/timezone.js";
 import Pricing from "../../models/priceModel.js";
 import { buyStars, buyPremium } from "./fragment.service.js";
 import { Order } from "../../models/order.js";
-import { json } from "express";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -151,6 +150,7 @@ class PaynetController {
       }
 
       let result = null;
+
       if (star) {
         result = await buyStars(username, star, transactionId);
       } else if (month) {
@@ -271,13 +271,21 @@ class PaynetController {
         },
       });
 
+      // get price per star
+      let pricing = await Pricing.findOne({});
+      let starPrice = pricing ? pricing.starPrice : 0;
+
       return res.json({
         jsonrpc: "2.0",
         id,
         result: {
           statements: transactions.map((item) => ({
             transactionId: item.transactionId,
-            amount: item.amount * 100,
+            amount:
+              (item.productType === "stars"
+                ? starPrice * +item.amount
+                : pricing.premium.find((p) => p.months === +item.amount)
+                    .price) * 100,
             providerTrnId: item._id,
             timestamp: dayjs(item.updatedAt)
               .tz("Asia/Tashkent")

@@ -1,6 +1,7 @@
 import bot from "../../bot/botConfig.js";
 import MLBB from "../../models/mlbb.js";
 import axios from "axios";
+import dayjs from "dayjs";
 
 let diamonds = [
   {
@@ -127,8 +128,8 @@ class MLBBController {
     try {
       let { id } = req.body;
       let params = req.body.params;
-      let { user_id, zone_id, amount, price_amount, transactionId } =
-        params.fields;
+      let transactionId = params.transactionId;
+      let { user_id, zone_id, amount, price_amount } = params.fields;
 
       if (!amount || !user_id || !zone_id || !price_amount || !transactionId) {
         return res.json({
@@ -189,7 +190,7 @@ class MLBBController {
         amount,
         price_amount: price_amount / 100,
         status: "success",
-        transId: transId,
+        transId: transactionId,
       });
 
       if (!order) {
@@ -236,193 +237,102 @@ class MLBBController {
     }
   }
 
-  async confirm(req, res) {
+  async checkTransaction(req, res) {
     try {
-      let { serviceId, transId } = req.body;
+      let { id, params } = req.body;
+      let transactionId = params.transactionId;
 
-      if (!transId) {
+      if (!transactionId) {
         return res.json({
-          serviceId: serviceId,
-          timestamp: new Date().getTime(),
-          status: "FAILED",
-          errorCode: "10005",
+          jsonrpc: "2.0",
+          id,
+          error: { code: -32602, message: "Majburiy parametr yo‘q" },
         });
       }
 
-      let order = await MLBB.findOne({ transId: transId });
+      let order = await MLBB.findOne({ transId: transactionId });
 
       if (!order) {
         return res.json({
-          serviceId: serviceId,
-          transId: transId,
-          status: "FAILED",
-          confirmTime: order?.updatedAt
-            ? new Date(order.updatedAt).getTime()
-            : new Date().getTime(),
-          errorCode: "10014",
-        });
-      }
-
-      if (order.status !== "success") {
-        return res.json({
-          serviceId: serviceId,
-          transId: transId,
-          status: "FAILED",
-          confirmTime: order.updatedAt || null,
-          errorCode: "10015",
-        });
-      }
-
-      return res.json({
-        serviceId,
-        transId,
-        confirmTime: order.updatedAt,
-        data: {
-          message: "Xarid muvaffaqiyatli amalga oshirildi",
-        },
-        amount: order.price_amount * 100,
-      });
-    } catch (error) {
-      console.log("uzum mlbb confirm error", error);
-      return res.json({
-        serviceId: req.body.serviceId,
-        timestamp: Date.now(),
-        status: "FAILED",
-        errorCode: "99999",
-      });
-    }
-  }
-
-  async reverse(req, res) {
-    try {
-      let { serviceId, transId } = req.body;
-
-      if (!transId) {
-        return res.json({
-          serviceId: serviceId,
-          timestamp: Date.now(),
-          status: "FAILED",
-          errorCode: "10005",
-        });
-      }
-
-      let order = await MLBB.findOne({ transId: transId });
-
-      if (!order) {
-        return res.json({
-          serviceId: serviceId,
-          transId: transId,
-          status: "FAILED",
-          errorCode: "10014",
-        });
-      }
-
-      let reversedOrder = await MLBB.findOneAndUpdate(
-        { transId: transId },
-        { status: "reversed" },
-        { new: true }
-      );
-
-      if (!reversedOrder) {
-        return res.json({
-          serviceId: serviceId,
-          transId: transId,
-          status: "FAILED",
-          reverseTime: new Date().getTime(),
-          errorCode: "10017",
-        });
-      }
-
-      return res.json({
-        serviceId,
-        transId,
-        status: "REVERSED",
-        reverseTime: reversedOrder?.updatedAt
-          ? new Date(reversedOrder.updatedAt).getTime()
-          : new Date(),
-        data: {
-          message: "Transaction bekor qilindi",
-        },
-        amount: reversedOrder.price_amount * 100,
-      });
-    } catch (error) {
-      console.log("uzum mlbb reverse error", error);
-      return res.json({
-        serviceId: req.body.serviceId,
-        timestamp: Date.now(),
-        status: "FAILED",
-        errorCode: "99999",
-      });
-    }
-  }
-
-  async status(req, res) {
-    try {
-      let { serviceId, transId } = req.body;
-
-      if (!transId) {
-        return res.json({
-          serviceId: serviceId,
-          timestamp: Date.now(),
-          status: "FAILED",
-          errorCode: "10005",
-        });
-      }
-
-      let order = await MLBB.findOne({ transId: transId });
-
-      if (!order) {
-        return res.json({
-          serviceId: serviceId,
-          transId: transId,
-          status: "FAILED",
-          errorCode: "10014",
-        });
-      }
-
-      if (order.status !== "success") {
-        return res.json({
-          serviceId: serviceId,
-          transId: transId,
-          status: "REVERSED",
-          transTime: order?.createdAt
-            ? new Date(order.createdAt).getTime()
-            : new Date().getTime(),
-          confirmTime: order?.updatedAt
-            ? new Date(order.updatedAt).getTime()
-            : new Date().getTime(),
-          reverseTime: order?.updatedAt
-            ? new Date(order.updatedAt).getTime()
-            : new Date().getTime(),
-          errorCode: "10014",
-        });
-      }
-
-      if (order.status === "success") {
-        return res.json({
-          serviceId: serviceId,
-          transId: transId,
-          status: "CONFIRMED",
-          transTime: order?.createdAt
-            ? new Date(order.createdAt).getTime()
-            : new Date().getTime(),
-          confirmTime: order?.updatedAt
-            ? new Date(order.updatedAt).getTime()
-            : new Date().getTime(),
-          reverseTime: null,
-          data: {
-            message: "Xarid muvaffaqiyatli amalga oshirildi",
+          jsonrpc: "2.0",
+          id,
+          error: {
+            code: 203,
+            message: "Транзакция не найдена",
           },
-          amount: order.price_amount * 100,
         });
       }
-    } catch (error) {
-      console.log("uzum mlbb status error", error);
+
+      if (order.status !== "success") {
+        return res.json({
+          jsonrpc: "2.0",
+          id,
+          error: { code: 202, message: "tranzaksiya bekor qilingan" },
+        });
+      }
+
       return res.json({
-        serviceId: req.body.serviceId,
-        timestamp: Date.now(),
-        status: "FAILED",
-        errorCode: "99999",
+        jsonrpc: "2.0",
+        id,
+        result: {
+          transactionState: 1,
+          timestamp: dayjs(order.updatedAt)
+            .tz("Asia/Tashkent")
+            .format("YYYY-MM-DD HH:mm:ss"),
+          providerTrnId: order._id,
+        },
+      });
+    } catch (error) {
+      console.error("Paynet mlbb check error:", err);
+      return res.json({
+        jsonrpc: "2.0",
+        id: id || null,
+        error: { code: -32603, message: "Tizim xatosi", err },
+      });
+    }
+  }
+
+  async getStatement(req, res) {
+    try {
+      let { id, params } = req.body;
+      let { dateFrom, dateTo } = params;
+
+      if (!dateFrom || !dateTo) {
+        return res.json({
+          jsonrpc: "2.0",
+          id,
+          error: { code: -32602, message: "Majburiy parametr yo‘q" },
+        });
+      }
+
+      let order = await MLBB.find({
+        status: "success",
+        createdAt: {
+          $gte: new Date(dateFrom),
+          $lte: new Date(dateTo),
+        },
+      });
+
+      return res.json({
+        jsonrpc: "2.0",
+        id,
+        result: {
+          statements: order.map((item) => ({
+            transactionId: item.transId,
+            amount: item.amount * 100,
+            providerTrnId: item._id,
+            timestamp: dayjs(item.updatedAt)
+              .tz("Asia/Tashkent")
+              .format("YYYY-MM-DD HH:mm:ss"),
+          })),
+        },
+      });
+    } catch (error) {
+      console.error("Paynet mlbb getStatement error:", err);
+      return res.json({
+        jsonrpc: "2.0",
+        id: id || null,
+        error: { code: -32603, message: "Tizim xatosi", err },
       });
     }
   }

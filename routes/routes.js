@@ -7,6 +7,7 @@ import tonkeeperRoutes from "../modules/tonkeeper/tonkeeper.routes.js";
 import mlbbController from "../modules/mlbb/mlbbController.js";
 import uzumController from "../modules/fragment/uzumController.js";
 import paynetController from "../modules/fragment/paynetController.js";
+import paynetMlbb from "../modules/mlbb/paynetMlbb.js";
 
 import middlewares from "../middlewares/authMiddleware.js";
 
@@ -67,7 +68,7 @@ router.post(
 );
 
 // Paynet tg
-router.post("paynet/", (req, res) => {
+router.post("/paynet/tg", (req, res) => {
   let { method, id } = req.body;
 
   if (!method) {
@@ -92,6 +93,34 @@ router.post("paynet/", (req, res) => {
 
   if (method === "GetStatement") {
     return paynetController.getStatement(req, res);
+  }
+});
+
+router.post("/paynet/mlbb", (req, res) => {
+  let { method, id } = req.body;
+
+  if (!method) {
+    return res.json({
+      jsonrpc: "2.0",
+      id: id || null,
+      error: { code: -32600, message: "Method ko‘rsatilmagan" },
+    });
+  }
+
+  if (method === "GetInformation") {
+    return paynetMlbb.getInformation(req, res);
+  }
+
+  if (method === "PerformTransaction") {
+    return paynetMlbb.performTransaction(req, res);
+  }
+
+  if (method === "CheckTransaction") {
+    return paynetMlbb.checkTransaction(req, res);
+  }
+
+  if (method === "GetStatement") {
+    return paynetMlbb.getStatement(req, res);
   }
 });
 
