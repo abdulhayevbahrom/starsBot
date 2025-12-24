@@ -164,6 +164,7 @@ class MLBBController {
           ? new Date(order.createdAt).getTime()
           : new Date().getTime(),
         data: {},
+        amount: price_amount,
       });
     } catch (error) {
       console.log("uzum mlbb create error", error);
@@ -221,6 +222,7 @@ class MLBBController {
           : new Date().getTime(),
         status: "CONFIRMED",
         data: {},
+        amount: order.price_amount * 100,
       });
     } catch (error) {
       console.log("uzum mlbb confirm error", error);
