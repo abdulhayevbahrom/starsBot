@@ -246,7 +246,7 @@ class UzumController {
         });
       }
 
-      if (!existingOrder?.status !== "success") {
+      if (existingOrder?.status !== "success") {
         return res.json({
           serviceId: serviceId,
           transId: transId,
