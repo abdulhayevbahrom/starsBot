@@ -1,7 +1,15 @@
 let permissons = [
   {
-    login: "uzumloginforservice",
-    password: "uzumpasswordforservice",
+    login: "uzumloginfortg",
+    password: "uzumpasswordfortg",
+  },
+  {
+    login: "uzumloginformlbb",
+    password: "uzumpasswordformlbb",
+  },
+  {
+    login: "uzumloginforpubg",
+    password: "uzumpasswordforpubg",
   },
   {
     login: "paynet",
@@ -9,7 +17,7 @@ let permissons = [
   },
 ];
 
-let serviceIds = ["1234", "5678"];
+let serviceIds = [7814652, 6515872, 4531225];
 
 class middlewares {
   async auth(req, res, next) {
@@ -24,6 +32,7 @@ class middlewares {
           errorCode: "10005",
         });
       }
+
       let data = Buffer.from(token, "base64").toString("ascii");
       let [login, password] = data.split(":");
 
@@ -54,6 +63,15 @@ class middlewares {
   async checkServiceId(req, res, next) {
     try {
       const { serviceId } = req.body;
+
+      if (typeof serviceId !== "number") {
+        return res.json({
+          serviceId: serviceId,
+          timestamp: Date.now(),
+          status: "FAILED",
+          errorCode: "10005",
+        });
+      }
 
       if (!serviceId) {
         return res.json({
