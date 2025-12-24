@@ -12,8 +12,8 @@ let permissons = [
     password: "uzumpasswordforpubg",
   },
   {
-    login: "paynet",
-    password: "paynet",
+    login: "paynetloginforservice",
+    password: "paynetpasswordforservice",
   },
 ];
 
@@ -34,7 +34,7 @@ class middlewares {
       }
 
       let data = Buffer.from(token, "base64").toString("ascii");
-      let [login, password] = data.split(":");
+      let [login, password] = data?.split(":");
 
       let user = permissons.find(
         (item) => item.login === login && item.password === password
@@ -56,6 +56,46 @@ class middlewares {
         timestamp: Date.now(),
         status: "FAILED",
         errorCode: "99999",
+      });
+    }
+  }
+
+  async authPaynet(req, res, next) {
+    try {
+      const { id } = req.body;
+      const token = req.headers.authorization?.split(" ")[1];
+
+      if (!token) {
+        return res.json({
+          jsonrpc: "2.0",
+          id,
+          error: { code: 411, message: "login or password not found" },
+        });
+      }
+
+      let data = Buffer.from(token, "base64").toString("ascii");
+      let [login, password] = data?.split(":");
+
+      let user = permissons.find(
+        (item) => item.login === login && item.password === password
+      );
+
+      if (!user) {
+        return res.json({
+          jsonrpc: "2.0",
+          id,
+          error: { code: 401, message: "unauthorized" },
+        });
+      }
+
+      next();
+    } catch (err) {
+      console.log(err);
+
+      return res.json({
+        jsonrpc: "2.0",
+        id: req.body.id || null,
+        error: { code: -32603, message: "Tizim xatosi", err },
       });
     }
   }

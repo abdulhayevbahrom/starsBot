@@ -98,7 +98,7 @@ router.post(
 // ===========================================================
 
 // Paynet tg
-router.post("/paynet/tg", (req, res) => {
+router.post("/paynet/tg", [middlewares.authPaynet], (req, res) => {
   let { method, id } = req.body;
 
   if (!method) {
@@ -126,7 +126,7 @@ router.post("/paynet/tg", (req, res) => {
   }
 });
 
-router.post("/paynet/mlbb", (req, res) => {
+router.post("/paynet/mlbb", [middlewares.authPaynet], (req, res) => {
   let { method, id } = req.body;
 
   if (!method) {
