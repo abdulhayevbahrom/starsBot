@@ -1,5 +1,6 @@
 import TelegramBot from "node-telegram-bot-api";
 import Pricing from "../models/priceModel.js";
+import { Order } from "../models/order.js"; // failed/success buyurtmalar
 
 export default function initPricingBot({ token, adminIds }) {
   const bot = new TelegramBot(token, { polling: true });
@@ -27,6 +28,7 @@ export default function initPricingBot({ token, adminIds }) {
       keyboard: [
         ["⭐ Star narxi", "💎 Premium narxlar"],
         ["⭐ Star o‘zgartirish", "💎 Premium o‘zgartirish"],
+        ["❌ Failed buyurtmalar"],
         ["↩️ Bekor qilish"],
       ],
       resize_keyboard: true,
@@ -161,10 +163,95 @@ export default function initPricingBot({ token, adminIds }) {
         }
         break;
 
+      case "❌ Failed buyurtmalar": {
+        const failedOrders = await Order.find({ status: { $ne: "success" } })
+          .sort({ createdAt: -1 })
+          .limit(10);
+
+        if (!failedOrders.length) {
+          return bot.sendMessage(
+            chatId,
+            "❌ Failed buyurtmalar yo‘q",
+            mainMenu
+          );
+        }
+
+        for (const o of failedOrders) {
+          await bot.sendMessage(
+            chatId,
+            [
+              `❌ FAILED BUYURTMA`,
+              `👤 User: ${o.userId}`,
+              `📦 Product: ${o.productType}`,
+              `📊 Miqdor: ${o.amount}`,
+              `📝 Status: ${o.status}`,
+              `📅 Buyurtma vaqti: ${new Date(o.createdAt).toLocaleString()}`,
+            ].join("\n"),
+            {
+              reply_markup: {
+                inline_keyboard: [
+                  [
+                    {
+                      text: "✅ Qo‘lda bajarildi",
+                      callback_data: `done_${o._id}`,
+                    },
+                  ],
+                ],
+              },
+            }
+          );
+        }
+        break;
+      }
+
       default:
         // boshqa xabarlar uchun hech narsa qilmaymiz
         break;
     }
+  });
+
+  bot.on("callback_query", async (query) => {
+    const msg = query.message;
+    const data = query.data;
+
+    if (!ADMINS.includes(query.from.id)) return;
+
+    if (!data.startsWith("done_")) return;
+
+    const orderId = data.replace("done_", "");
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return bot.answerCallbackQuery(query.id, {
+        text: "❌ Buyurtma topilmadi",
+        show_alert: true,
+      });
+    }
+
+    if (order.status === "success") {
+      return bot.answerCallbackQuery(query.id, {
+        text: "⚠️ Bu buyurtma allaqachon SUCCESS",
+        show_alert: true,
+      });
+    }
+
+    order.status = "success";
+    order.updatedAt = new Date();
+    await order.save();
+
+    // tugmani o‘chiramiz
+    await bot.editMessageReplyMarkup(
+      { inline_keyboard: [] },
+      {
+        chat_id: msg.chat.id,
+        message_id: msg.message_id,
+      }
+    );
+
+    await bot.answerCallbackQuery(query.id, {
+      text: "✅ Buyurtma SUCCESS qilindi",
+      show_alert: false,
+    });
   });
 
   return bot;

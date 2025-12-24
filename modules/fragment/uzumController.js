@@ -188,8 +188,9 @@ class UzumController {
           status: "CREATED",
           transTime: result?.order?.updatedAt
             ? new Date(result?.order?.updatedAt).getTime()
-            : Date.now().getTime(),
+            : new Date().getTime(),
           data: {},
+          amount: totalPrice * 100,
         });
       }
     } catch (err) {
@@ -256,6 +257,9 @@ class UzumController {
         });
       }
 
+      let pricing = await Pricing.findOne({});
+      let starPrice = pricing ? pricing.starPrice : 0;
+
       if (existingOrder?.status === "success") {
         return res.json({
           serviceId,
@@ -265,6 +269,11 @@ class UzumController {
             ? new Date(existingOrder?.updatedAt).getTime()
             : new Date().getTime(),
           data: {},
+          amount:
+            (existingOrder.productType === "stars"
+              ? existingOrder.amount * starPrice
+              : pricing.premium.find((p) => p.months === existingOrder.amount)
+                  .price) * 100,
         });
       }
     } catch (err) {
@@ -383,7 +392,7 @@ class UzumController {
         });
       }
 
-      const url = `${process.env.API_BASE}/star/recipient/search?username=${username}&quantity=50`;
+      const url = `${process.env.API_BASE}/star/recipient/search?username=${existingOrder.userId}&quantity=50`;
       let headers = {
         "API-Key": process.env.API_KEY,
       };
@@ -392,6 +401,9 @@ class UzumController {
       });
 
       let data = await response.json();
+
+      let pricing = await Pricing.findOne({});
+      let starPrice = pricing ? pricing.starPrice : 0;
 
       if (existingOrder.status === "success") {
         return res.json({
@@ -409,7 +421,11 @@ class UzumController {
               value: existingOrder.amount + "",
             },
           },
-          amount: existingOrder.amount * 100, // tiyinda
+          amount:
+            (existingOrder.productType === "stars"
+              ? existingOrder.amount * starPrice
+              : pricing.premium.find((p) => p.months === existingOrder.amount)
+                  .price) * 100,
         });
       }
 
