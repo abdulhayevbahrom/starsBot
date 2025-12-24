@@ -410,8 +410,12 @@ class UzumController {
           serviceId: serviceId,
           transId: transId,
           status: "CONFIRMED",
-          transTime: existingOrder.createdAt,
-          confirmTime: existingOrder.updatedAt,
+          transTime: existingOrder?.createdAt
+            ? new Date(existingOrder.createdAt).getTime()
+            : new Date().getTime(),
+          confirmTime: existingOrder?.updatedAt
+            ? new Date(existingOrder.updatedAt).getTime()
+            : new Date().getTime(),
           reverseTime: null,
           data: {
             name: {
