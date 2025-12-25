@@ -34,14 +34,23 @@ class MLBBController {
   async check(req, res) {
     try {
       let { serviceId, params } = req.body;
-      let { player_id, player_name, amount } = params;
+      let { player_id, amount } = params;
 
-      if (!amount || !player_id || !player_name) {
+      if (!amount || !player_id) {
         return res.json({
           serviceId: serviceId,
           timestamp: Date.now(),
           status: "FAILED",
           errorCode: "10005",
+        });
+      }
+
+      if (!String(player_id).startsWith("5")) {
+        return res.json({
+          serviceId: serviceId,
+          timestamp: Date.now(),
+          status: "FAILED",
+          errorCode: "10007",
         });
       }
 
@@ -63,7 +72,6 @@ class MLBBController {
         timestamp: Date.now(),
         status: "OK",
         data: {
-          player_name: { value: player_name },
           player_id: { value: player_id },
           amount: { value: price + "" },
         },
@@ -83,9 +91,9 @@ class MLBBController {
     try {
       let { serviceId, transId, price_amount } = req.body;
       let params = req.body.params;
-      let { player_id, player_name, amount } = params;
+      let { player_id, amount } = params;
 
-      if (!amount || !player_id || !player_name || !price_amount) {
+      if (!amount || !player_id || !price_amount) {
         return res.json({
           serviceId: serviceId,
           timestamp: Date.now(),
@@ -129,7 +137,6 @@ class MLBBController {
 
       let order = await PUBG.create({
         player_id,
-        player_name,
         amount,
         price_amount: price_amount / 100,
         status: "success",
@@ -147,7 +154,6 @@ class MLBBController {
 
       const message = [
         `🆔 Player ID: <code>${player_id}</code>`,
-        `👤 Player Name : <code>${player_name}</code>`,
         `🪙 Miqdori: <b>${amount}</b> UC`,
         `📅 Sana: <i>${order.createdAt.toLocaleString()}</i>`,
       ].join("\n");

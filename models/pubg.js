@@ -6,10 +6,6 @@ const pubgSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    player_name: {
-      type: String,
-      required: true,
-    },
     amount: {
       type: Number,
       required: true,
