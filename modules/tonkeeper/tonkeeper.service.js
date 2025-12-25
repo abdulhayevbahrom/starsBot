@@ -46,8 +46,8 @@ class TonkeeperService {
       const address = await this.wallet.getAddress();
       this.walletAddress = address.toString(true, true, true);
 
-      console.log("✅ Tonkeeper wallet tayyor");
-      console.log("📮 Address:", this.walletAddress);
+      // console.log("✅ Tonkeeper wallet tayyor");
+      // console.log("📮 Address:", this.walletAddress);
 
       this.initialized = true;
     } catch (error) {

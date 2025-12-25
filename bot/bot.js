@@ -186,6 +186,7 @@ export default function initPricingBot({ token, adminIds }) {
               `📊 Miqdor: ${o.amount}`,
               `📝 Status: ${o.status}`,
               `📅 Buyurtma vaqti: ${new Date(o.createdAt).toLocaleString()}`,
+              `❓ Sabab: ${o.errorMessage}`,
             ].join("\n"),
             {
               reply_markup: {

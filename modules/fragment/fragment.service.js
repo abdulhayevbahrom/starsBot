@@ -57,7 +57,7 @@ export const getProductPriceTON = async (
       priceObj = priceObj[0];
     }
 
-    console.log("📊 API /api/prices javobi:", priceObj, "| params:", params);
+    // console.log("📊 API /api/prices javobi:", priceObj, "| params:", params);
 
     if (priceObj.currency !== "TON") {
       throw new Error(
@@ -74,7 +74,7 @@ export const getProductPriceTON = async (
       );
     }
 
-    console.log(`💰 ${priceObj.item_name}: ${priceInTON} TON`);
+    // console.log(`💰 ${priceObj.item_name}: ${priceInTON} TON`);
     return priceInTON;
   } catch (error) {
     console.error(
@@ -119,7 +119,7 @@ const createTopupInvoice = async (amount) => {
     const response = await api.post("/merchants/topup", payload, {
       headers: { "X-API-Key": API_KEY },
     });
-    console.log("✅ Top-up invoice yaratildi:", response.data);
+    // console.log("✅ Top-up invoice yaratildi:", response.data);
     return response.data;
   } catch (error) {
     const status = error.response?.status;
@@ -155,7 +155,7 @@ const ensureFragmentBalance = async (requiredTonAmount) => {
     return true;
   }
 
-  console.log(`⚠️ Balans yetarli emas. Kerak: ${minRequired.toFixed(4)} TON`);
+  // console.log(`⚠️ Balans yetarli emas. Kerak: ${minRequired.toFixed(4)} TON`);
 
   const topupAmount = Number((minRequired - currentBalance + 0.01).toFixed(6));
   const invoice = await createTopupInvoice(topupAmount);
@@ -454,5 +454,15 @@ export const checkTransaction = async (transactionId) => {
       error.response?.data || error.message
     );
     throw error;
+  }
+};
+
+export const checkModule = async (type, amount) => {
+  try {
+    const tonAmount = await getTonPrice(type, amount);
+    await ensureFragmentBalance(tonAmount);
+    return { success: true };
+  } catch (balanceError) {
+    throw balanceError;
   }
 };

@@ -3,7 +3,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
 import Pricing from "../../models/priceModel.js";
-import { buyStars, buyPremium } from "./fragment.service.js";
+import { buyStars, buyPremium, checkModule } from "./fragment.service.js";
 import { Order } from "../../models/order.js";
 
 dayjs.extend(utc);
@@ -71,6 +71,18 @@ class UzumController {
           ? pricing.premium.find((p) => p.months === +month)
           : null;
         if (premiumOption) totalPrice += premiumOption.price;
+      }
+
+      let type = star ? "stars" : "premium";
+      try {
+        await checkModule(type, star || month);
+      } catch (err) {
+        return res.json({
+          serviceId: serviceId,
+          timestamp: new Date().getTime(),
+          status: "FAILED",
+          errorCode: "10003",
+        });
       }
 
       return res.json({
