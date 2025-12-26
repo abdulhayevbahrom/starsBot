@@ -206,7 +206,7 @@ class MLBBController {
         `📅 Sana: <i>${order.createdAt.toLocaleString()}</i>`,
       ].join("\n");
 
-      await bot.sendMessage(process.env.TG_GROUP_ID, message, {
+      await bot.sendMessage(process.env.TG_GROUP_ID_MLBB, message, {
         parse_mode: "HTML",
       });
 

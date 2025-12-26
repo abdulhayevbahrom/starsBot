@@ -50,9 +50,9 @@ class MLBBController {
   async getInformation(req, res) {
     try {
       let { id, params } = req.body;
-      let { user_id, zone_id, amount } = params.fields;
+      let { user_id, zone_id, quantity } = params.fields;
 
-      if (!amount || !user_id || !zone_id) {
+      if (!quantity || !user_id || !zone_id) {
         return res.json({
           jsonrpc: "2.0",
           id,
@@ -68,7 +68,9 @@ class MLBBController {
         });
       }
 
-      let exact_price = diamonds.find((item) => item.diamonds === "" + amount);
+      let exact_price = diamonds.find(
+        (item) => item.diamonds === "" + quantity
+      );
 
       if (!exact_price) {
         return res.json({
@@ -107,10 +109,12 @@ class MLBBController {
         id,
         result: {
           status: "0",
-          timestamp: dayjs().tz("Asia/Tashkent").format("YYYY-MM-DD HH:mm:ss"),
+          timestamp: dayjs()
+            .tz("Asia/Tashkent")
+            .format("ddd MMM DD HH:mm:ss [UZT] YYYY"),
           fields: {
             name: data.username,
-            price: price * 100,
+            price: price,
           },
         },
       });
@@ -129,9 +133,9 @@ class MLBBController {
       let { id } = req.body;
       let params = req.body.params;
       let transactionId = params.transactionId;
-      let { user_id, zone_id, amount, price_amount } = params.fields;
+      let { user_id, zone_id, quantity, amount } = params.fields;
 
-      if (!amount || !user_id || !zone_id || !price_amount || !transactionId) {
+      if (!quantity || !user_id || !zone_id || !amount || !transactionId) {
         return res.json({
           jsonrpc: "2.0",
           id,
@@ -162,7 +166,7 @@ class MLBBController {
       }
 
       let exact_diamond = diamonds.find(
-        (item) => item.diamonds === "" + amount
+        (item) => item.diamonds === "" + quantity
       );
 
       if (!exact_diamond) {
@@ -176,7 +180,7 @@ class MLBBController {
         });
       }
 
-      if (price_amount !== exact_diamond.price * 100) {
+      if (amount !== exact_diamond.price * 100) {
         return res.json({
           jsonrpc: "2.0",
           id,
@@ -187,8 +191,8 @@ class MLBBController {
       let order = await MLBB.create({
         user_id,
         zone_id,
-        amount,
-        price_amount: price_amount / 100,
+        amount: quantity,
+        price_amount: amount / 100,
         status: "success",
         transId: transactionId,
       });
@@ -207,11 +211,11 @@ class MLBBController {
       const message = [
         `🆔 MLBB ID: <code>${user_id}</code>`,
         `🌐 Zone ID: <code>${zone_id}</code>`,
-        `💎 Miqdori: <b>${amount}</b> diamonds`,
+        `💎 Miqdori: <b>${quantity}</b> diamonds`,
         `📅 Sana: <i>${order.createdAt.toLocaleString()}</i>`,
       ].join("\n");
 
-      await bot.sendMessage(process.env.TG_GROUP_ID, message, {
+      await bot.sendMessage(process.env.TG_GROUP_ID_MLBB, message, {
         parse_mode: "HTML",
       });
 
@@ -219,7 +223,9 @@ class MLBBController {
         jsonrpc: "2.0",
         id,
         result: {
-          timestamp: dayjs().tz("Asia/Tashkent").format("YYYY-MM-DD HH:mm:ss"),
+          timestamp: dayjs()
+            .tz("Asia/Tashkent")
+            .format("ddd MMM DD HH:mm:ss [UZT] YYYY"),
           providerTrnId: order._id,
           fields: {
             price: exact_diamond.price * 100,
@@ -231,8 +237,8 @@ class MLBBController {
       console.log("paynet mlbb create error", error);
       return res.json({
         jsonrpc: "2.0",
-        id: id || null,
-        error: { code: -32603, message: "Tizim xatosi", err },
+        id: req.body.id || null,
+        error: { code: -32603, message: "Tizim xatosi", error },
       });
     }
   }
@@ -278,16 +284,16 @@ class MLBBController {
           transactionState: 1,
           timestamp: dayjs(order.updatedAt)
             .tz("Asia/Tashkent")
-            .format("YYYY-MM-DD HH:mm:ss"),
+            .format("ddd MMM DD HH:mm:ss [UZT] YYYY"),
           providerTrnId: order._id,
         },
       });
     } catch (error) {
-      console.error("Paynet mlbb check error:", err);
+      console.error("Paynet mlbb check error:", error);
       return res.json({
         jsonrpc: "2.0",
-        id: id || null,
-        error: { code: -32603, message: "Tizim xatosi", err },
+        id: req.body.id || null,
+        error: { code: -32603, message: "Tizim xatosi", error },
       });
     }
   }
@@ -319,11 +325,11 @@ class MLBBController {
         result: {
           statements: order.map((item) => ({
             transactionId: item.transId,
-            amount: item.amount * 100,
+            amount: item.price_amount * 100,
             providerTrnId: item._id,
             timestamp: dayjs(item.updatedAt)
               .tz("Asia/Tashkent")
-              .format("YYYY-MM-DD HH:mm:ss"),
+              .format("ddd MMM DD HH:mm:ss [UZT] YYYY"),
           })),
         },
       });

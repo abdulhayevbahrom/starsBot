@@ -5,6 +5,7 @@ import timezone from "dayjs/plugin/timezone.js";
 import Pricing from "../../models/priceModel.js";
 import { buyStars, buyPremium, checkModule } from "./fragment.service.js";
 import { Order } from "../../models/order.js";
+import { botTg as bot } from "../../bot/botConfig.js";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -75,8 +76,19 @@ class UzumController {
 
       let type = star ? "stars" : "premium";
       try {
+        // tonkeper va fragmant balanci tekshirish
         await checkModule(type, star || month);
       } catch (err) {
+        // botga habar yuborish
+        try {
+          await bot.sendMessage(
+            process.env.ADMIN_IDS.split(",")[0],
+            `❌ Hisobda ton yetarli emas [Uzum] ❌`
+          );
+        } catch (err) {
+          console.error("Failed to send bot notification:", err);
+        }
+
         return res.json({
           serviceId: serviceId,
           timestamp: new Date().getTime(),

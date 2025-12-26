@@ -28,8 +28,6 @@ let uc_s = [
   },
 ];
 
-// data faqat chekda va statisda
-
 class MLBBController {
   async check(req, res) {
     try {

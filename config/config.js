@@ -9,7 +9,6 @@ const connectDB = async () => {
     await mongoose.connect(MONGO_URI);
 
     initPricingBot({
-      token: process.env.BOT_TOKEN,
       adminIds: process.env.ADMIN_IDS.split(","),
     });
     console.log("🟢 MongoDB ulandi");

@@ -1,9 +1,9 @@
 import TelegramBot from "node-telegram-bot-api";
 import Pricing from "../models/priceModel.js";
 import { Order } from "../models/order.js"; // failed/success buyurtmalar
+import { botTg as bot } from "./botConfig.js";
 
-export default function initPricingBot({ token, adminIds }) {
-  const bot = new TelegramBot(token, { polling: true });
+export default function initPricingBot({ adminIds }) {
   const ADMINS = adminIds.map((id) => Number(id));
   const isAdmin = (msg) => ADMINS.includes(msg.from.id);
   const userState = {};

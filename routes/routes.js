@@ -98,61 +98,69 @@ router.post(
 // ===========================================================
 
 // Paynet tg
-router.post("/paynet/tg", [middlewares.authPaynet], (req, res) => {
-  let { method, id } = req.body;
+router.post(
+  "/paynet/tg",
+  [middlewares.authPaynet, middlewares.checkServiceIdPaynet],
+  (req, res) => {
+    let { method, id } = req.body;
 
-  if (!method) {
-    return res.json({
-      jsonrpc: "2.0",
-      id: id || null,
-      error: { code: -32600, message: "Method ko‘rsatilmagan" },
-    });
+    if (!method) {
+      return res.json({
+        jsonrpc: "2.0",
+        id: id || null,
+        error: { code: -32600, message: "Method ko‘rsatilmagan" },
+      });
+    }
+
+    if (method === "GetInformation") {
+      return paynetController.getInformation(req, res);
+    }
+
+    if (method === "PerformTransaction") {
+      return paynetController.performTransaction(req, res);
+    }
+
+    if (method === "CheckTransaction") {
+      return paynetController.checkTransaction(req, res);
+    }
+
+    if (method === "GetStatement") {
+      return paynetController.getStatement(req, res);
+    }
   }
+);
 
-  if (method === "GetInformation") {
-    return paynetController.getInformation(req, res);
+router.post(
+  "/paynet/mlbb",
+  [middlewares.authPaynet, middlewares.checkServiceIdPaynet],
+  (req, res) => {
+    let { method, id } = req.body;
+
+    if (!method) {
+      return res.json({
+        jsonrpc: "2.0",
+        id: id || null,
+        error: { code: -32600, message: "Method ko‘rsatilmagan" },
+      });
+    }
+
+    if (method === "GetInformation") {
+      return paynetMlbb.getInformation(req, res);
+    }
+
+    if (method === "PerformTransaction") {
+      return paynetMlbb.performTransaction(req, res);
+    }
+
+    if (method === "CheckTransaction") {
+      return paynetMlbb.checkTransaction(req, res);
+    }
+
+    if (method === "GetStatement") {
+      return paynetMlbb.getStatement(req, res);
+    }
   }
-
-  if (method === "PerformTransaction") {
-    return paynetController.performTransaction(req, res);
-  }
-
-  if (method === "CheckTransaction") {
-    return paynetController.checkTransaction(req, res);
-  }
-
-  if (method === "GetStatement") {
-    return paynetController.getStatement(req, res);
-  }
-});
-
-router.post("/paynet/mlbb", [middlewares.authPaynet], (req, res) => {
-  let { method, id } = req.body;
-
-  if (!method) {
-    return res.json({
-      jsonrpc: "2.0",
-      id: id || null,
-      error: { code: -32600, message: "Method ko‘rsatilmagan" },
-    });
-  }
-
-  if (method === "GetInformation") {
-    return paynetMlbb.getInformation(req, res);
-  }
-
-  if (method === "PerformTransaction") {
-    return paynetMlbb.performTransaction(req, res);
-  }
-
-  if (method === "CheckTransaction") {
-    return paynetMlbb.checkTransaction(req, res);
-  }
-
-  if (method === "GetStatement") {
-    return paynetMlbb.getStatement(req, res);
-  }
-});
+);
 
 router.get("/fragment/balance", controller.getAccount);
 router.get("/fragment/transaction/:id", controller.checkTransaction);
