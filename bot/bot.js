@@ -1,12 +1,13 @@
 import TelegramBot from "node-telegram-bot-api";
 import Pricing from "../models/priceModel.js";
-import { Order } from "../models/order.js"; // failed/success buyurtmalar
+import { Order } from "../models/order.js";
 import { botTg as bot } from "./botConfig.js";
 
 export default function initPricingBot({ adminIds }) {
   const ADMINS = adminIds.map((id) => Number(id));
   const isAdmin = (msg) => ADMINS.includes(msg.from.id);
   const userState = {};
+  const successPageState = {};
 
   async function getPricing() {
     let pricing = await Pricing.findOne();
@@ -27,8 +28,8 @@ export default function initPricingBot({ adminIds }) {
     reply_markup: {
       keyboard: [
         ["⭐ Star narxi", "💎 Premium narxlar"],
-        ["⭐ Star o‘zgartirish", "💎 Premium o‘zgartirish"],
-        ["❌ Failed buyurtmalar"],
+        ["⭐ Star o'zgartirish", "💎 Premium o'zgartirish"],
+        ["❌ Failed buyurtmalar", "✅ Muvaffaqiyatli buyurtmalar"],
         ["↩️ Bekor qilish"],
       ],
       resize_keyboard: true,
@@ -36,105 +37,193 @@ export default function initPricingBot({ adminIds }) {
     },
   };
 
-  bot.onText(/\/start|\/menu/, (msg) => {
+  // /start va /menu komandalarini alohida handle qilish
+  bot.onText(/\/start|\/menu/, async (msg) => {
     if (!isAdmin(msg)) return;
-    bot.sendMessage(msg.chat.id, "⚡️ Boshqaruv menyusi", mainMenu);
+    await bot.sendMessage(msg.chat.id, "⚡️ Boshqaruv menyusi", mainMenu);
   });
+
+  async function sendSuccessOrders(chatId, page = 1) {
+    const limit = 5;
+    const skip = (page - 1) * limit;
+
+    const total = await Order.countDocuments({ status: "success" });
+
+    if (!total) {
+      return bot.sendMessage(chatId, "✅ Muvaffaqiyatli buyurtmalar yo'q");
+    }
+
+    const orders = await Order.find({ status: "success" })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .select("userId productType amount createdAt")
+      .lean();
+
+    let text = `✅ *Muvaffaqiyatli buyurtmalar*\n`;
+    text += `📄 Sahifa: ${page} / ${Math.ceil(total / limit)}\n\n`;
+
+    orders.forEach((o, i) => {
+      text +=
+        `#${skip + i + 1}\n` +
+        `👤 User: ${o.userId}\n` +
+        `📦 Product: ${o.productType}\n` +
+        `📊 Miqdor: ${o.amount}\n` +
+        `📅 Sana: ${new Date(o.createdAt).toLocaleString()}\n\n`;
+    });
+
+    const keyboard = [];
+
+    if (page > 1) {
+      keyboard.push({
+        text: "⬅️ Oldingi",
+        callback_data: `success_prev_${page - 1}`,
+      });
+    }
+
+    if (page * limit < total) {
+      keyboard.push({
+        text: "➡️ Keyingi",
+        callback_data: `success_next_${page + 1}`,
+      });
+    }
+
+    await bot.sendMessage(chatId, text, {
+      // parse_mode: "MarkdownV2",
+      reply_markup: {
+        inline_keyboard: [keyboard],
+      },
+    });
+  }
 
   bot.on("message", async (msg) => {
     const chatId = msg.chat.id;
     if (!isAdmin(msg)) return;
-    const text = msg?.text?.trim();
-    const pricing = await getPricing();
 
-    // Agar foydalanuvchi "Bekor qilish" bosgan bo‘lsa
+    const text = msg?.text?.trim();
+
+    // Agar text yo'q bo'lsa yoki komanda bo'lsa, o'tkazib yuboramiz
+    if (!text || text.startsWith("/")) return;
+
+    // Bekor qilish
     if (text === "↩️ Bekor qilish") {
       delete userState[chatId];
       return bot.sendMessage(
         chatId,
-        "❌ Har qanday o‘zgartirish bekor qilindi",
+        "❌ Har qanday o'zgartirish bekor qilindi",
         mainMenu
       );
     }
 
-    // Har qanday yangi tugma bosilganda FSMni bekor qilish
-    const newCommandKeys = [
-      "⭐ Star narxi",
-      "💎 Premium narxlar",
-      "⭐ Star o‘zgartirish",
-      "💎 Premium o‘zgartirish",
-    ];
-    if (newCommandKeys.includes(text)) {
-      delete userState[chatId];
+    // FSM: Star narxini o'zgartirish
+    if (userState[chatId]?.action === "set_star") {
+      const price = Number(text);
+      if (isNaN(price) || price < 0) {
+        return bot.sendMessage(
+          chatId,
+          "❌ Noto'g'ri qiymat. Musbat raqam kiriting."
+        );
+      }
+
+      try {
+        const pricing = await getPricing();
+        pricing.starPrice = price;
+        await pricing.save();
+
+        delete userState[chatId];
+
+        return bot.sendMessage(
+          chatId,
+          `✅ Star narxi muvaffaqiyatli yangilandi: ${price}`,
+          mainMenu
+        );
+      } catch (err) {
+        console.error("❌ Star narxini saqlashda xatolik:", err);
+        delete userState[chatId];
+        return bot.sendMessage(
+          chatId,
+          "⚠️ Xatolik yuz berdi, keyinroq urinib ko'ring",
+          mainMenu
+        );
+      }
     }
 
-    // FSM ishlayotgan bo‘lsa (narx kiritish)
-    if (
-      userState[chatId]?.action === "set_star" ||
-      userState[chatId]?.action === "set_premium"
-    ) {
+    // FSM: Premium narxini o'zgartirish
+    if (userState[chatId]?.action === "set_premium") {
       const price = Number(text);
-      if (isNaN(price)) {
-        return bot.sendMessage(chatId, "❌ Noto‘g‘ri qiymat. Raqam kiriting.");
+      if (isNaN(price) || price < 0) {
+        return bot.sendMessage(
+          chatId,
+          "❌ Noto'g'ri qiymat. Musbat raqam kiriting."
+        );
       }
 
       const state = userState[chatId];
 
       try {
-        if (state.action === "set_star") {
-          pricing.starPrice = price;
-          await pricing.save();
-          bot.sendMessage(
-            chatId,
-            `✅ Star narxi yangilandi: ${price}`,
-            mainMenu
-          );
-        } else if (state.action === "set_premium") {
-          const index = pricing.premium.findIndex(
-            (p) => p.months === state.months
-          );
-          if (index >= 0) pricing.premium[index].price = price;
-          else pricing.premium.push({ months: state.months, price });
-          await pricing.save();
-          bot.sendMessage(
-            chatId,
-            `✅ Premium ${state.months} oy narxi yangilandi: ${price}`,
-            mainMenu
-          );
+        const pricing = await getPricing();
+        const index = pricing.premium.findIndex(
+          (p) => p.months === state.months
+        );
+
+        if (index >= 0) {
+          pricing.premium[index].price = price;
+        } else {
+          pricing.premium.push({ months: state.months, price });
         }
-      } catch (err) {
-        console.error("❌ FSM error:", err);
-        bot.sendMessage(
+
+        await pricing.save();
+
+        delete userState[chatId];
+
+        return bot.sendMessage(
           chatId,
-          "⚠️ Xatolik yuz berdi, keyinroq urinib ko‘ring",
+          `✅ Premium ${state.months} oy narxi muvaffaqiyatli yangilandi: ${price}`,
           mainMenu
         );
-      } finally {
+      } catch (err) {
+        console.error("❌ Premium narxini saqlashda xatolik:", err);
         delete userState[chatId];
+        return bot.sendMessage(
+          chatId,
+          "⚠️ Xatolik yuz berdi, keyinroq urinib ko'ring",
+          mainMenu
+        );
       }
-      return;
     }
 
     // Tugmalar bilan ishlash
+    const pricing = await getPricing();
+
     switch (text) {
       case "⭐ Star narxi":
-        bot.sendMessage(chatId, `⭐ Star narxi: ${pricing.starPrice}`);
+        await bot.sendMessage(
+          chatId,
+          `⭐ Hozirgi Star narxi: ${pricing.starPrice}`
+        );
         break;
 
-      case "💎 Premium narxlar":
-        let textResp = "💎 Premium narxlari:\n";
+      case "💎 Premium narxlar": {
+        let textResp = "💎 Premium narxlari:\n\n";
         pricing.premium.forEach((p) => {
           textResp += `• ${p.months} oy — ${p.price}\n`;
         });
-        bot.sendMessage(chatId, textResp);
+        await bot.sendMessage(chatId, textResp);
         break;
+      }
 
-      case "⭐ Star o‘zgartirish":
+      case "⭐ Star o'zgartirish":
+        delete userState[chatId];
         userState[chatId] = { action: "set_star" };
-        bot.sendMessage(chatId, "⭐ Star narxini kiriting (raqam):");
+        await bot.sendMessage(
+          chatId,
+          `⭐ Hozirgi Star narxi: ${pricing.starPrice}\n\nYangi Star narxini kiriting (raqam):`,
+          { reply_markup: { remove_keyboard: true } }
+        );
         break;
 
-      case "💎 Premium o‘zgartirish":
+      case "💎 Premium o'zgartirish":
+        delete userState[chatId];
         userState[chatId] = { action: "choose_month" };
         const keyboard = {
           reply_markup: {
@@ -143,9 +232,9 @@ export default function initPricingBot({ adminIds }) {
             one_time_keyboard: true,
           },
         };
-        bot.sendMessage(
+        await bot.sendMessage(
           chatId,
-          "Qancha oy uchun premium narxini o‘zgartirasiz?",
+          "Qancha oy uchun premium narxini o'zgartirasiz?",
           keyboard
         );
         break;
@@ -155,10 +244,15 @@ export default function initPricingBot({ adminIds }) {
       case "12 oy":
         if (userState[chatId]?.action === "choose_month") {
           const months = Number(text.split(" ")[0]);
+          const currentPrice =
+            pricing.premium.find((p) => p.months === months)?.price || 0;
+
           userState[chatId] = { action: "set_premium", months };
-          bot.sendMessage(
+
+          await bot.sendMessage(
             chatId,
-            `${months} oy uchun narxni kiriting (raqam):`
+            `💎 Hozirgi ${months} oy narxi: ${currentPrice}\n\nYangi narxni kiriting (raqam):`,
+            { reply_markup: { remove_keyboard: true } }
           );
         }
         break;
@@ -171,7 +265,7 @@ export default function initPricingBot({ adminIds }) {
         if (!failedOrders.length) {
           return bot.sendMessage(
             chatId,
-            "❌ Failed buyurtmalar yo‘q",
+            "❌ Failed buyurtmalar yo'q",
             mainMenu
           );
         }
@@ -186,14 +280,14 @@ export default function initPricingBot({ adminIds }) {
               `📊 Miqdor: ${o.amount}`,
               `📝 Status: ${o.status}`,
               `📅 Buyurtma vaqti: ${new Date(o.createdAt).toLocaleString()}`,
-              `❓ Sabab: ${o.errorMessage}`,
+              `❓ Sabab: ${o.errorMessage || "Noma'lum"}`,
             ].join("\n"),
             {
               reply_markup: {
                 inline_keyboard: [
                   [
                     {
-                      text: "✅ Qo‘lda bajarildi",
+                      text: "✅ Qo'lda bajarildi",
                       callback_data: `done_${o._id}`,
                     },
                   ],
@@ -205,8 +299,13 @@ export default function initPricingBot({ adminIds }) {
         break;
       }
 
+      case "✅ Muvaffaqiyatli buyurtmalar":
+        successPageState[chatId] = 1;
+        await sendSuccessOrders(chatId, 1);
+        break;
+
       default:
-        // boshqa xabarlar uchun hech narsa qilmaymiz
+        // Noma'lum xabar
         break;
     }
   });
@@ -215,44 +314,58 @@ export default function initPricingBot({ adminIds }) {
     const msg = query.message;
     const data = query.data;
 
-    if (!ADMINS.includes(query.from.id)) return;
-
-    if (!data.startsWith("done_")) return;
-
-    const orderId = data.replace("done_", "");
-
-    const order = await Order.findById(orderId);
-    if (!order) {
+    if (!ADMINS.includes(query.from.id)) {
       return bot.answerCallbackQuery(query.id, {
-        text: "❌ Buyurtma topilmadi",
+        text: "❌ Sizda ruxsat yo'q",
         show_alert: true,
       });
     }
 
-    if (order.status === "success") {
-      return bot.answerCallbackQuery(query.id, {
-        text: "⚠️ Bu buyurtma allaqachon SUCCESS",
-        show_alert: true,
-      });
+    // SUCCESS pagination
+    if (data.startsWith("success_")) {
+      const [, type, page] = data.split("_");
+      successPageState[msg.chat.id] = Number(page);
+      await sendSuccessOrders(msg.chat.id, Number(page));
+      return bot.answerCallbackQuery(query.id);
     }
 
-    order.status = "success";
-    order.updatedAt = new Date();
-    await order.save();
+    // Failed order SUCCESS qilish
+    if (data.startsWith("done_")) {
+      const orderId = data.replace("done_", "");
 
-    // tugmani o‘chiramiz
-    await bot.editMessageReplyMarkup(
-      { inline_keyboard: [] },
-      {
-        chat_id: msg.chat.id,
-        message_id: msg.message_id,
+      const order = await Order.findById(orderId);
+      if (!order) {
+        return bot.answerCallbackQuery(query.id, {
+          text: "❌ Buyurtma topilmadi",
+          show_alert: true,
+        });
       }
-    );
 
-    await bot.answerCallbackQuery(query.id, {
-      text: "✅ Buyurtma SUCCESS qilindi",
-      show_alert: false,
-    });
+      if (order.status === "success") {
+        return bot.answerCallbackQuery(query.id, {
+          text: "⚠️ Bu buyurtma allaqachon SUCCESS",
+          show_alert: true,
+        });
+      }
+
+      order.status = "success";
+      order.updatedAt = new Date();
+      await order.save();
+
+      // Tugmani o'chirish
+      await bot.editMessageReplyMarkup(
+        { inline_keyboard: [] },
+        {
+          chat_id: msg.chat.id,
+          message_id: msg.message_id,
+        }
+      );
+
+      await bot.answerCallbackQuery(query.id, {
+        text: "✅ Buyurtma SUCCESS qilindi",
+        show_alert: false,
+      });
+    }
   });
 
   return bot;

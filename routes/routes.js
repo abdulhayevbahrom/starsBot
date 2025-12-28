@@ -3,7 +3,6 @@ import express from "express";
 // Import module routes
 import * as controller from "../modules/fragment/fragment.controller.js";
 
-import tonkeeperRoutes from "../modules/tonkeeper/tonkeeper.routes.js";
 import mlbbController from "../modules/mlbb/mlbbController.js";
 import uzumController from "../modules/fragment/uzumController.js";
 import paynetController from "../modules/fragment/paynetController.js";
@@ -12,6 +11,13 @@ import paynetMlbb from "../modules/mlbb/paynetMlbb.js";
 import pubgController from "../modules/pubg/pubgController.js";
 
 import middlewares from "../middlewares/authMiddleware.js";
+
+import {
+  getWalletInfo,
+  getBalance,
+  getTransactions,
+  sendTon,
+} from "../modules/tonkeeper/tonkeeper.controller.js";
 
 const router = express.Router();
 
@@ -162,9 +168,13 @@ router.post(
   }
 );
 
+// Fragment
 router.get("/fragment/balance", controller.getAccount);
 router.get("/fragment/transaction/:id", controller.checkTransaction);
 
-router.use("/tonkeeper", tonkeeperRoutes);
-
+// Tonkeeper
+router.get("/tonkeeper/wallet", getWalletInfo);
+router.get("/tonkeeper/balance", getBalance);
+router.get("/tonkeeper/transactions", getTransactions);
+router.post("/tonkeeper/send", sendTon);
 export default router;
