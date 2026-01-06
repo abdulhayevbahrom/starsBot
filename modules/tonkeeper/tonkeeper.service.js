@@ -104,11 +104,11 @@ class TonkeeperService {
 
       const amountNano = TonWeb.utils.toNano(amount.toString());
 
-      console.log(`📤 TON yuborilmoqda:`);
-      console.log(`   From: ${this.walletAddress}`);
-      console.log(`   To: ${toAddress}`);
-      console.log(`   Amount: ${amount} TON`);
-      console.log(`   Comment: ${comment || "yo'q"}`);
+      // console.log(`📤 TON yuborilmoqda:`);
+      // console.log(`   From: ${this.walletAddress}`);
+      // console.log(`   To: ${toAddress}`);
+      // console.log(`   Amount: ${amount} TON`);
+      // console.log(`   Comment: ${comment || "yo'q"}`);
 
       // ✅ SEQNO FIX
       let seqno = await this.wallet.methods.seqno().call();
@@ -127,7 +127,7 @@ class TonkeeperService {
 
       await transfer.send();
 
-      console.log("✅ TON yuborildi!");
+      // console.log("✅ TON yuborildi!");
 
       return {
         success: true,
