@@ -144,9 +144,7 @@ class PaynetController {
         id,
         result: {
           status: "0",
-          timestamp: dayjs()
-            .tz("Asia/Tashkent")
-            .format("ddd MMM DD HH:mm:ss [UZT] YYYY"),
+          timestamp: dayjs().tz("Asia/Tashkent").format("YYYY-MM-DD HH:mm:ss"),
           fields: {
             name: data.name,
             amount: totalPrice,
@@ -356,9 +354,7 @@ class PaynetController {
         jsonrpc: "2.0",
         id,
         result: {
-          timestamp: dayjs()
-            .tz("Asia/Tashkent")
-            .format("ddd MMM DD HH:mm:ss [UZT] YYYY"),
+          timestamp: dayjs().tz("Asia/Tashkent").format("YYYY-MM-DD HH:mm:ss"),
           providerTrnId: result.order._id,
           fields: {
             message: "To‘lov muvaffaqiyatli amalga oshirildi",
@@ -417,7 +413,7 @@ class PaynetController {
             transactionState: 1,
             timestamp: dayjs(existingOrder.updatedAt)
               .tz("Asia/Tashkent")
-              .format("YYYY-MM-DD HH:mm:ss"),
+              .format("ddd MMM DD HH:mm:ss [UZT] YYYY"),
             providerTrnId: existingOrder._id,
           },
         });
@@ -545,7 +541,7 @@ class PaynetController {
               providerTrnId: item._id,
               timestamp: dayjs(item.updatedAt)
                 .tz("Asia/Tashkent")
-                .format("ddd MMM DD HH:mm:ss [UZT] YYYY"),
+                .format("YYYY-MM-DD HH:mm:ss"),
             };
           }),
         },

@@ -109,9 +109,7 @@ class MLBBController {
         id,
         result: {
           status: "0",
-          timestamp: dayjs()
-            .tz("Asia/Tashkent")
-            .format("ddd MMM DD HH:mm:ss [UZT] YYYY"),
+          timestamp: dayjs().tz("Asia/Tashkent").format("YYYY-MM-DD HH:mm:ss"),
           fields: {
             name: data.username,
             price: price,
@@ -223,9 +221,7 @@ class MLBBController {
         jsonrpc: "2.0",
         id,
         result: {
-          timestamp: dayjs()
-            .tz("Asia/Tashkent")
-            .format("ddd MMM DD HH:mm:ss [UZT] YYYY"),
+          timestamp: dayjs().tz("Asia/Tashkent").format("YYYY-MM-DD HH:mm:ss"),
           providerTrnId: order._id,
           fields: {
             price: exact_diamond.price * 100,
@@ -329,7 +325,7 @@ class MLBBController {
             providerTrnId: item._id,
             timestamp: dayjs(item.updatedAt)
               .tz("Asia/Tashkent")
-              .format("ddd MMM DD HH:mm:ss [UZT] YYYY"),
+              .format("YYYY-MM-DD HH:mm:ss"),
           })),
         },
       });
