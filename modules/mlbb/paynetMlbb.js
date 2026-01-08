@@ -298,6 +298,7 @@ class MLBBController {
     try {
       let { id, params } = req.body;
       let { dateFrom, dateTo } = params;
+      let { serviceId } = params;
 
       if (!dateFrom || !dateTo) {
         return res.json({
