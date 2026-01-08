@@ -494,6 +494,14 @@ class PaynetController {
         });
       }
 
+      if (![1, 2].includes(serviceId)) {
+        return res.json({
+          jsonrpc: "2.0",
+          id,
+          error: { code: 305, message: "Invalid service id" },
+        });
+      }
+
       // ===== SERVICE TYPE MAPPING =====
       let productType = null;
       if (serviceId == 1) productType = "stars";
