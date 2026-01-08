@@ -338,7 +338,7 @@ class MLBBController {
         },
       });
     } catch (error) {
-      console.error("Paynet mlbb getStatement error:", err);
+      console.error("Paynet mlbb getStatement error:", error);
       return res.json({
         jsonrpc: "2.0",
         id: id || null,
