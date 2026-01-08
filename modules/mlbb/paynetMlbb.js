@@ -342,7 +342,7 @@ class MLBBController {
       return res.json({
         jsonrpc: "2.0",
         id: id || null,
-        error: { code: -32603, message: "Tizim xatosi", err },
+        error: { code: -32603, message: "Tizim xatosi", error },
       });
     }
   }
