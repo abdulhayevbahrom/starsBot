@@ -131,7 +131,8 @@ class MLBBController {
       let { id } = req.body;
       let params = req.body.params;
       let transactionId = params.transactionId;
-      let { user_id, zone_id, quantity, amount } = params.fields;
+      let amount = params.amount;
+      let { user_id, zone_id, quantity } = params.fields;
 
       if (!quantity || !user_id || !zone_id || !amount || !transactionId) {
         return res.json({
