@@ -23,10 +23,14 @@ const pubgSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    from: {
+      type: String,
+      required: true,
+    },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 export default mongoose.model("pubg", pubgSchema);

@@ -1,58 +1,41 @@
 import bot from "../../bot/botConfig.js";
-import MLBB from "../../models/mlbb.js";
-import axios from "axios";
+import PUBG from "../../models/pubg.js";
 import dayjs from "dayjs";
 
-let diamonds = [
+let uc_s = [
   {
-    diamonds: "55",
+    uc: "60",
     price: 13000,
   },
   {
-    diamonds: "86",
-    price: 18500,
+    uc: "325",
+    price: 60000,
   },
   {
-    diamonds: "172",
-    price: 35000,
+    uc: "660",
+    price: 120000,
   },
   {
-    diamonds: "275",
-    price: 55000,
+    uc: "1800",
+    price: 310000,
   },
   {
-    diamonds: "706",
-    price: 133000,
+    uc: "3850",
+    price: 5850000,
   },
   {
-    diamonds: "2195",
-    price: 408000,
-  },
-  {
-    diamonds: "3688",
-    price: 680000,
-  },
-  {
-    diamonds: "5532",
-    price: 1007000,
-  },
-  {
-    diamonds: "9228",
-    price: 1650000,
-  },
-  {
-    diamonds: "weekly",
-    price: 25000,
+    uc: "8100",
+    price: 1180000,
   },
 ];
 
-class MLBBController {
+class PubgPaynetController {
   async getInformation(req, res) {
     try {
       let { id, params } = req.body;
-      let { user_id, zone_id, quantity } = params.fields;
+      let { player_id, quantity } = params.fields;
 
-      if (!quantity || !user_id || !zone_id) {
+      if (!quantity || !player_id) {
         return res.json({
           jsonrpc: "2.0",
           id,
@@ -60,49 +43,28 @@ class MLBBController {
         });
       }
 
-      if (String(zone_id).startsWith("6")) {
+      if (!String(player_id).startsWith("5")) {
         return res.json({
           jsonrpc: "2.0",
           id,
-          error: { code: 100, message: "zone id 6 bilan boshlanmasin" },
+          error: { code: 100, message: "player id 5 bilan boshlansin" },
         });
       }
 
-      let exact_price = diamonds.find(
-        (item) => item.diamonds === "" + quantity
-      );
+      let exact_price = uc_s.find((item) => item.uc === "" + quantity);
 
       if (!exact_price) {
         return res.json({
           jsonrpc: "2.0",
           id,
           error: {
-            code: 304,
-            message: "diamond miqdori noto‘g‘ri",
+            code: 100,
+            message: "Miqdor noto‘g‘ri",
           },
         });
       }
 
       let price = exact_price.price;
-
-      let URL = "https://www.smile.one/merchant/mobilelegends/checkrole";
-
-      const { data } = await axios.post(URL, {
-        user_id,
-        zone_id,
-      });
-
-      // Agar mijoz mavjud bo‘lmasa (hozircha false)
-      if (data.code === 201) {
-        return res.json({
-          jsonrpc: "2.0",
-          id,
-          error: {
-            code: 302,
-            message: "Mijoz ma'lumotlari topilmadi",
-          },
-        });
-      }
 
       return res.json({
         jsonrpc: "2.0",
@@ -111,17 +73,17 @@ class MLBBController {
           status: "0",
           timestamp: dayjs().tz("Asia/Tashkent").format("YYYY-MM-DD HH:mm:ss"),
           fields: {
-            name: data.username,
-            price: price,
+            player_id,
+            price,
           },
         },
       });
-    } catch (error) {
-      console.log("paynet mlbb check error", error);
+    } catch (err) {
+      console.log("paynet pubg get error", err);
       return res.json({
         jsonrpc: "2.0",
         id: id || null,
-        error: { code: -32603, message: "Tizim xatosi", error },
+        error: { code: -32603, message: "Tizim xatosi", err },
       });
     }
   }
@@ -132,9 +94,15 @@ class MLBBController {
       let params = req.body.params;
       let transactionId = params.transactionId;
       let amount = params.amount;
-      let { user_id, zone_id, quantity } = params.fields;
+      let { player_id, quantity, price_amount } = params.fields;
 
-      if (!quantity || !user_id || !zone_id || !amount || !transactionId) {
+      if (
+        !amount ||
+        !player_id ||
+        !quantity ||
+        !price_amount ||
+        !transactionId
+      ) {
         return res.json({
           jsonrpc: "2.0",
           id,
@@ -142,8 +110,7 @@ class MLBBController {
         });
       }
 
-      // check exact  transaction
-      let transaction = await MLBB.findOne({ transId: transactionId });
+      let transaction = await PUBG.findOne({ transId: transactionId });
 
       if (transaction) {
         return res.json({
@@ -156,30 +123,28 @@ class MLBBController {
         });
       }
 
-      if (String(zone_id).startsWith("6")) {
+      if (!String(player_id).startsWith("5")) {
         return res.json({
           jsonrpc: "2.0",
           id,
-          error: { code: 100, message: "zone id 6 bilan boshlanmasin" },
+          error: { code: 100, message: "player id 5 bilan boshlansin" },
         });
       }
 
-      let exact_diamond = diamonds.find(
-        (item) => item.diamonds === "" + quantity,
-      );
+      let exact_price = uc_s.find((item) => item.uc === "" + quantity);
 
-      if (!exact_diamond) {
+      if (!exact_price) {
         return res.json({
           jsonrpc: "2.0",
           id,
           error: {
             code: 304,
-            message: "diamond miqdori noto‘g‘ri",
+            message: "UC Miqdor noto‘g‘ri",
           },
         });
       }
 
-      if (amount !== exact_diamond.price * 100) {
+      if (amount !== exact_price.price * 100) {
         return res.json({
           jsonrpc: "2.0",
           id,
@@ -187,13 +152,13 @@ class MLBBController {
         });
       }
 
-      let order = await MLBB.create({
-        user_id,
-        zone_id,
-        amount: quantity,
+      let order = await PUBG.create({
+        player_id,
+        amount,
         price_amount: amount / 100,
         status: "success",
         transId: transactionId,
+        from: "paynet",
       });
 
       if (!order) {
@@ -208,13 +173,13 @@ class MLBBController {
       }
 
       const message = [
-        `🆔 MLBB ID: <code>${user_id}</code>`,
-        `🌐 Zone ID: <code>${zone_id}</code>`,
-        `💎 Miqdori: <b>${quantity}</b> diamonds`,
+        `🆔 Player ID: <code>${player_id}</code>`,
+        `🪙 Miqdori: <b>${quantity}</b> UC`,
+        `💰 From: <b>Paynet</b>`,
         `📅 Sana: <i>${order.createdAt.toLocaleString()}</i>`,
       ].join("\n");
 
-      await bot.sendMessage(process.env.TG_GROUP_ID_MLBB, message, {
+      await bot.sendMessage(process.env.TG_GROUP_ID_PUBG, message, {
         parse_mode: "HTML",
       });
 
@@ -225,17 +190,17 @@ class MLBBController {
           timestamp: dayjs().tz("Asia/Tashkent").format("YYYY-MM-DD HH:mm:ss"),
           providerTrnId: order._id,
           fields: {
-            price: exact_diamond.price * 100,
+            price: exact_price.price * 100,
             message: "To‘lov muvaffaqiyatli amalga oshirildi",
           },
         },
       });
-    } catch (error) {
-      console.log("paynet mlbb create error", error);
+    } catch (err) {
+      console.log("paynet pubg perform error", err);
       return res.json({
         jsonrpc: "2.0",
-        id: req.body.id || null,
-        error: { code: -32603, message: "Tizim xatosi", error },
+        id: id || null,
+        error: { code: -32603, message: "Tizim xatosi", err },
       });
     }
   }
@@ -253,7 +218,7 @@ class MLBBController {
         });
       }
 
-      let order = await MLBB.findOne({ transId: transactionId });
+      let order = await PUBG.findOne({ transId: transactionId });
 
       if (!order) {
         return res.json({
@@ -286,7 +251,7 @@ class MLBBController {
         },
       });
     } catch (error) {
-      console.error("Paynet mlbb check error:", error);
+      console.error("Paynet pubg check error:", error);
       return res.json({
         jsonrpc: "2.0",
         id: req.body.id || null,
@@ -300,14 +265,6 @@ class MLBBController {
       let { id, params } = req.body;
       let { dateFrom, dateTo } = params;
       let { serviceId } = params;
-      // check id and serviceId
-      if (!id || !serviceId) {
-        return res.json({
-          jsonrpc: "2.0",
-          id,
-          error: { code: -32602, message: "Majburiy parametr yo‘q" },
-        });
-      }
 
       if (!dateFrom || !dateTo) {
         return res.json({
@@ -317,7 +274,7 @@ class MLBBController {
         });
       }
 
-      if (![3].includes(serviceId)) {
+      if (![4].includes(serviceId)) {
         return res.json({
           jsonrpc: "2.0",
           id,
@@ -325,8 +282,9 @@ class MLBBController {
         });
       }
 
-      let order = await MLBB.find({
+      let order = await PUBG.find({
         status: "success",
+        from: "paynet",
         createdAt: {
           $gte: new Date(dateFrom),
           $lte: new Date(dateTo),
@@ -348,7 +306,7 @@ class MLBBController {
         },
       });
     } catch (error) {
-      console.error("Paynet mlbb getStatement error:", error);
+      console.error("Paynet pubg getStatement error:", error);
       return res.json({
         jsonrpc: "2.0",
         id: req.body.id || null,
@@ -358,4 +316,4 @@ class MLBBController {
   }
 }
 
-export default new MLBBController();
+export default new PubgPaynetController();

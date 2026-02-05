@@ -139,6 +139,7 @@ class MLBBController {
         price_amount: price_amount / 100,
         status: "success",
         transId: transId,
+        from: "uzum",
       });
 
       if (!order) {
@@ -153,7 +154,7 @@ class MLBBController {
       const message = [
         `🆔 Player ID: <code>${player_id}</code>`,
         `🪙 Miqdori: <b>${amount}</b> UC`,
-        `📅 Sana: <i>${order.createdAt.toLocaleString()}</i>`,
+        `💰 From: <b>Uzum</b>``📅 Sana: <i>${order.createdAt.toLocaleString()}</i>`,
       ].join("\n");
 
       await bot.sendMessage(process.env.TG_GROUP_ID_PUBG, message, {

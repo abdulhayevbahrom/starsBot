@@ -20,7 +20,7 @@ let permissons = [
 ];
 
 let serviceIds = [7814652, 6515872, 4531225];
-let paynerSerivceIds = [1, 2, 3];
+let paynerSerivceIds = [1, 2, 3, 4];
 
 class middlewares {
   async auth(req, res, next) {
@@ -40,7 +40,7 @@ class middlewares {
       let [login, password] = data?.split(":");
 
       let user = permissons.find(
-        (item) => item.login === login && item.password === password
+        (item) => item.login === login && item.password === password,
       );
 
       if (!user) {
@@ -80,7 +80,7 @@ class middlewares {
       let [login, password] = data?.split(":");
 
       let user = permissons.find(
-        (item) => item.login === login && item.password === password
+        (item) => item.login === login && item.password === password,
       );
 
       if (!user) {

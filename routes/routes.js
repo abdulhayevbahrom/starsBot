@@ -9,6 +9,8 @@ import paynetController from "../modules/fragment/paynetController.js";
 import paynetMlbb from "../modules/mlbb/paynetMlbb.js";
 
 import pubgController from "../modules/pubg/pubgController.js";
+// pubg paynet
+import paynetPubg from "../modules/pubg/pubgPaynet.js";
 
 import middlewares from "../middlewares/authMiddleware.js";
 
@@ -25,80 +27,80 @@ const router = express.Router();
 router.post(
   "/uzum/tg/check",
   [middlewares.auth, middlewares.checkServiceId],
-  uzumController.check
+  uzumController.check,
 );
 router.post(
   "/uzum/tg/create",
   [middlewares.auth, middlewares.checkServiceId],
-  uzumController.create
+  uzumController.create,
 );
 router.post(
   "/uzum/tg/confirm",
   [middlewares.auth, middlewares.checkServiceId],
-  uzumController.confirm
+  uzumController.confirm,
 );
 router.post(
   "/uzum/tg/reverse",
   [middlewares.auth, middlewares.checkServiceId],
-  uzumController.reverse
+  uzumController.reverse,
 );
 router.post(
   "/uzum/tg/status",
   [middlewares.auth, middlewares.checkServiceId],
-  uzumController.status
+  uzumController.status,
 );
 
 // MLBB ----------------------------------------------------------------
 router.post(
   "/uzum/mlbb/check",
   [middlewares.auth, middlewares.checkServiceId],
-  mlbbController.check
+  mlbbController.check,
 );
 router.post(
   "/uzum/mlbb/create",
   [middlewares.auth, middlewares.checkServiceId],
-  mlbbController.create
+  mlbbController.create,
 );
 router.post(
   "/uzum/mlbb/confirm",
   [middlewares.auth, middlewares.checkServiceId],
-  mlbbController.confirm
+  mlbbController.confirm,
 );
 router.post(
   "/uzum/mlbb/reverse",
   [middlewares.auth, middlewares.checkServiceId],
-  mlbbController.reverse
+  mlbbController.reverse,
 );
 router.post(
   "/uzum/mlbb/status",
   [middlewares.auth, middlewares.checkServiceId],
-  mlbbController.status
+  mlbbController.status,
 );
 
-// pubg
+// uzum pubg
 
 router.post(
   "/uzum/pubg/check",
   [middlewares.auth, middlewares.checkServiceId],
-  pubgController.check
+  pubgController.check,
 );
 
 router.post(
   "/uzum/pubg/create",
   [middlewares.auth, middlewares.checkServiceId],
-  pubgController.create
+  pubgController.create,
 );
 
 router.post(
   "/uzum/pubg/confirm",
   [middlewares.auth, middlewares.checkServiceId],
-  pubgController.confirm
+  pubgController.confirm,
 );
 
 router.post(
   "/uzum/pubg/status",
   [middlewares.auth, middlewares.checkServiceId],
-  pubgController.status
+  pubgController.status,
 );
 
 // ===========================================================
@@ -133,7 +135,7 @@ router.post(
     if (method === "GetStatement") {
       return paynetController.getStatement(req, res);
     }
-  }
+  },
 );
 
 router.post(
@@ -165,7 +167,40 @@ router.post(
     if (method === "GetStatement") {
       return paynetMlbb.getStatement(req, res);
     }
-  }
+  },
+);
+
+// Paynet pubg
+router.post(
+  "/paynet/pubg",
+  [middlewares.authPaynet, middlewares.checkServiceIdPaynet],
+  (req, res) => {
+    let { method, id } = req.body;
+
+    if (!method) {
+      return res.json({
+        jsonrpc: "2.0",
+        id: id || null,
+        error: { code: -32600, message: "Method ko‘rsatilmagan" },
+      });
+    }
+
+    if (method === "GetInformation") {
+      return paynetPubg.getInformation(req, res);
+    }
+
+    if (method === "PerformTransaction") {
+      return paynetPubg.performTransaction(req, res);
+    }
+
+    if (method === "CheckTransaction") {
+      return paynetPubg.checkTransaction(req, res);
+    }
+
+    if (method === "GetStatement") {
+      return paynetPubg.getStatement(req, res);
+    }
+  },
 );
 
 // Fragment
