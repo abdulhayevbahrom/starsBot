@@ -5,43 +5,43 @@ import axios from "axios";
 let diamonds = [
   {
     diamonds: "55",
-    price: 13000,
+    price: 15000,
   },
   {
     diamonds: "86",
-    price: 18500,
+    price: 20000,
   },
   {
     diamonds: "172",
-    price: 35000,
+    price: 38000,
   },
   {
     diamonds: "275",
-    price: 55000,
+    price: 64000,
   },
   {
     diamonds: "706",
-    price: 133000,
+    price: 155000,
   },
   {
     diamonds: "2195",
-    price: 408000,
+    price: 460000,
   },
   {
     diamonds: "3688",
-    price: 680000,
+    price: 7300000,
   },
   {
     diamonds: "5532",
-    price: 1007000,
+    price: 1020000,
   },
   {
     diamonds: "9228",
-    price: 1650000,
+    price: 17600000,
   },
   {
     diamonds: "weekly",
-    price: 25000,
+    price: 30000,
   },
 ];
 
@@ -160,7 +160,7 @@ class MLBBController {
       }
 
       let exact_diamond = diamonds.find(
-        (item) => item.diamonds === "" + amount
+        (item) => item.diamonds === "" + amount,
       );
 
       if (!exact_diamond) {
@@ -316,7 +316,7 @@ class MLBBController {
       let reversedOrder = await MLBB.findOneAndUpdate(
         { transId: transId },
         { status: "reversed" },
-        { new: true }
+        { new: true },
       );
 
       if (!reversedOrder) {
