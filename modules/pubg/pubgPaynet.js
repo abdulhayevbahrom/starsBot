@@ -74,7 +74,7 @@ class PubgPaynetController {
           timestamp: dayjs().tz("Asia/Tashkent").format("YYYY-MM-DD HH:mm:ss"),
           fields: {
             player_id,
-            price,
+            amount: price,
           },
         },
       });

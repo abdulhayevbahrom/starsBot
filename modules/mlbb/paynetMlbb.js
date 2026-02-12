@@ -69,7 +69,7 @@ class MLBBController {
       }
 
       let exact_price = diamonds.find(
-        (item) => item.diamonds === "" + quantity
+        (item) => item.diamonds === "" + quantity,
       );
 
       if (!exact_price) {
@@ -112,7 +112,7 @@ class MLBBController {
           timestamp: dayjs().tz("Asia/Tashkent").format("YYYY-MM-DD HH:mm:ss"),
           fields: {
             name: data.username,
-            price: price,
+            amount: price,
           },
         },
       });
