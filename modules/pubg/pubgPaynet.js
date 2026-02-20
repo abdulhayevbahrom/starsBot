@@ -5,27 +5,27 @@ import dayjs from "dayjs";
 let uc_s = [
   {
     uc: "60",
-    price: 13000,
+    price: 14000,
   },
   {
     uc: "325",
-    price: 60000,
+    price: 72000,
   },
   {
     uc: "660",
-    price: 120000,
+    price: 141000,
   },
   {
     uc: "1800",
-    price: 310000,
+    price: 355000,
   },
   {
     uc: "3850",
-    price: 5850000,
+    price: 680000,
   },
   {
     uc: "8100",
-    price: 1180000,
+    price: 1400000,
   },
 ];
 
