@@ -124,9 +124,10 @@ class MLBBController {
 
   async create(req, res) {
     try {
-      let { serviceId, transId, price_amount } = req.body;
+      let { serviceId, transId } = req.body;
       let params = req.body.params;
       let { user_id, zone_id, amount } = params;
+      let price_amount = Number(req.body.price_amount);
 
       if (!amount || !user_id || !zone_id || !price_amount) {
         return res.json({
@@ -172,7 +173,7 @@ class MLBBController {
         });
       }
 
-      if (price_amount !== exact_diamond.price * 100) {
+      if (Number.isNaN(price_amount) || price_amount !== exact_diamond.price * 100) {
         return res.json({
           serviceId: serviceId,
           timestamp: Date.now(),
@@ -184,7 +185,7 @@ class MLBBController {
       let order = await MLBB.create({
         user_id,
         zone_id,
-        amount,
+        amount: String(amount),
         price_amount: price_amount / 100,
         status: "success",
         transId: transId,
