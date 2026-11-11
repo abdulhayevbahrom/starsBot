@@ -1,12 +1,11 @@
 import PUBG from "../../models/pubg.js";
-import dayjs from "dayjs";
-import utc from "dayjs/plugin/utc.js";
-import timezone from "dayjs/plugin/timezone.js";
 import { sendPubgOrderToAdmins } from "../../bot/pubgAdmin.js";
 import { checkPubgPlayer } from "./volsever.service.js";
-
-dayjs.extend(utc);
-dayjs.extend(timezone);
+import { getNextSequence } from "../../services/counter.service.js";
+import {
+  tashkentTimestamp,
+  tashkentTransactionTimestamp,
+} from "../../utils/time.js";
 
 const PUBG_SERVICE_ID = 4;
 const PLAYER_CACHE_TTL_MS = 30 * 60 * 1000;
@@ -112,6 +111,32 @@ function getCachedPlayer(playerId) {
   return cached;
 }
 
+async function ensureProviderTrnId(order) {
+  if (Number.isInteger(order.providerTrnId)) {
+    return order.providerTrnId;
+  }
+
+  const providerTrnId = await getNextSequence("pubg_provider_transaction");
+  const updatedOrder = await PUBG.findOneAndUpdate(
+    {
+      _id: order._id,
+      $or: [
+        { providerTrnId: { $exists: false } },
+        { providerTrnId: null },
+      ],
+    },
+    { $set: { providerTrnId } },
+    { new: true },
+  );
+
+  if (updatedOrder) return updatedOrder.providerTrnId;
+
+  const existingOrder = await PUBG.findById(order._id)
+    .select("providerTrnId")
+    .lean();
+  return existingOrder.providerTrnId;
+}
+
 class PubgPaynetController {
   dispatch(req, res) {
     const { id, jsonrpc, method, params } = req.body ?? {};
@@ -168,7 +193,7 @@ class PubgPaynetController {
       return res.json(
         paynetResult(id, {
           status: "0",
-          timestamp: dayjs().tz("Asia/Tashkent").format("YYYY-MM-DD HH:mm:ss"),
+          timestamp: tashkentTimestamp(),
           fields: {
             player_id: player.userId,
             player_name: player.username,
@@ -217,6 +242,9 @@ class PubgPaynetController {
       }
 
       const playerProfile = getCachedPlayer(validated.playerId);
+      const providerTrnId = await getNextSequence(
+        "pubg_provider_transaction",
+      );
 
       const order = await PUBG.create({
         player_id: playerProfile?.resolvedPlayerId || validated.playerId,
@@ -226,6 +254,7 @@ class PubgPaynetController {
         status: "success",
         admin_status: "pending",
         transId: transactionId,
+        providerTrnId,
         from: "paynet",
       });
 
@@ -245,8 +274,8 @@ class PubgPaynetController {
 
       return res.json(
         paynetResult(id, {
-          timestamp: dayjs().tz("Asia/Tashkent").format("YYYY-MM-DD HH:mm:ss"),
-          providerTrnId: order._id,
+          timestamp: tashkentTimestamp(),
+          providerTrnId,
           fields: {
             price: amount,
             message: "To‘lov muvaffaqiyatli amalga oshirildi",
@@ -289,13 +318,13 @@ class PubgPaynetController {
         return res.json(paynetError(id, PAYNET_ERRORS.transactionCanceled));
       }
 
+      const providerTrnId = await ensureProviderTrnId(order);
+
       return res.json(
         paynetResult(id, {
           transactionState: 1,
-          timestamp: dayjs(order.updatedAt)
-            .tz("Asia/Tashkent")
-            .format("ddd MMM DD HH:mm:ss [UZT] YYYY"),
-          providerTrnId: order._id,
+          timestamp: tashkentTransactionTimestamp(order.updatedAt),
+          providerTrnId,
         }),
       );
     } catch (error) {
@@ -334,16 +363,18 @@ class PubgPaynetController {
         },
       }).sort({ createdAt: 1 });
 
+      const statements = await Promise.all(
+        orders.map(async (order) => ({
+          transactionId: order.transId,
+          amount: order.price_amount * 100,
+          providerTrnId: await ensureProviderTrnId(order),
+          timestamp: tashkentTimestamp(order.updatedAt),
+        })),
+      );
+
       return res.json(
         paynetResult(id, {
-          statements: orders.map((order) => ({
-            transactionId: order.transId,
-            amount: order.price_amount * 100,
-            providerTrnId: order._id,
-            timestamp: dayjs(order.updatedAt)
-              .tz("Asia/Tashkent")
-              .format("YYYY-MM-DD HH:mm:ss"),
-          })),
+          statements,
         }),
       );
     } catch (error) {

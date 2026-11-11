@@ -36,6 +36,12 @@ const pubgSchema = new mongoose.Schema(
       unique: true,
       index: true,
     },
+    providerTrnId: {
+      type: Number,
+      unique: true,
+      sparse: true,
+      index: true,
+    },
     price_amount: {
       type: Number,
       required: true,
