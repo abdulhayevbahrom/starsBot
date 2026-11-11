@@ -1,319 +1,312 @@
-import bot from "../../bot/botConfig.js";
 import PUBG from "../../models/pubg.js";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc.js";
+import timezone from "dayjs/plugin/timezone.js";
+import { sendPubgOrderToAdmins } from "../../bot/pubgAdmin.js";
+import { checkPubgPlayer } from "./volsever.service.js";
 
-let uc_s = [
-  {
-    uc: "60",
-    price: 14000,
-  },
-  {
-    uc: "325",
-    price: 72000,
-  },
-  {
-    uc: "660",
-    price: 141000,
-  },
-  {
-    uc: "1800",
-    price: 355000,
-  },
-  {
-    uc: "3850",
-    price: 680000,
-  },
-  {
-    uc: "8100",
-    price: 1400000,
-  },
-];
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+const PUBG_SERVICE_ID = 4;
+
+const PAYNET_ERRORS = {
+  invalidRequest: { code: -32600, message: "Method ko‘rsatilmagan" },
+  methodNotFound: { code: -32601, message: "Method topilmadi" },
+  invalidParams: { code: -32602, message: "Majburiy parametr yo‘q" },
+  internalError: { code: -32603, message: "Tizim xatosi" },
+  invalidService: { code: 305, message: "Invalid service id" },
+  invalidClient: { code: 302, message: "Mijoz ma’lumotlari noto‘g‘ri" },
+  transactionExists: { code: 201, message: "Tranzaksiya allaqachon mavjud" },
+  transactionCanceled: { code: 202, message: "Tranzaksiya bekor qilingan" },
+  transactionNotFound: { code: 203, message: "Tranzaksiya topilmadi" },
+  invalidQuantity: { code: 304, message: "Miqdor noto‘g‘ri" },
+  invalidAmount: { code: 413, message: "Narx noto‘g‘ri" },
+};
+
+const UC_PACKAGES = new Map([
+  ["60", 14000],
+  ["325", 72000],
+  ["660", 141000],
+  ["1800", 355000],
+  ["3850", 680000],
+  ["8100", 1400000],
+]);
+
+function paynetError(id, error) {
+  return {
+    jsonrpc: "2.0",
+    id: id ?? null,
+    error,
+  };
+}
+
+function paynetResult(id, result) {
+  return {
+    jsonrpc: "2.0",
+    id,
+    result,
+  };
+}
+
+function validateServiceId(params) {
+  return params?.serviceId === PUBG_SERVICE_ID;
+}
+
+function validateFields(fields = {}) {
+  const playerId = String(fields.player_id ?? "").trim();
+  const product = String(fields.product ?? fields.quantity ?? "").trim();
+
+  if (!playerId || !product) {
+    return { ok: false, error: PAYNET_ERRORS.invalidParams };
+  }
+
+  if (!/^5\d+$/.test(playerId)) {
+    return {
+      ok: false,
+      error: {
+        ...PAYNET_ERRORS.invalidClient,
+        message: "Player ID 5 bilan boshlansin",
+      },
+    };
+  }
+
+  return { ok: true, playerId, product };
+}
 
 class PubgPaynetController {
+  dispatch(req, res) {
+    const { id, jsonrpc, method, params } = req.body ?? {};
+
+    if (jsonrpc !== "2.0" || !method || !params || typeof params !== "object") {
+      return res.json(paynetError(id, PAYNET_ERRORS.invalidRequest));
+    }
+
+    const actions = {
+      GetInformation: this.getInformation.bind(this),
+      PerformTransaction: this.performTransaction.bind(this),
+      CheckTransaction: this.checkTransaction.bind(this),
+      GetStatement: this.getStatement.bind(this),
+    };
+
+    const action = actions[method];
+    if (!action) {
+      return res.json(paynetError(id, PAYNET_ERRORS.methodNotFound));
+    }
+
+    return action(req, res);
+  }
+
   async getInformation(req, res) {
+    const { id, params } = req.body;
+
     try {
-      let { id, params } = req.body;
-      let { player_id, quantity } = params.fields;
-
-      if (!quantity || !player_id) {
-        return res.json({
-          jsonrpc: "2.0",
-          id,
-          error: { code: -32602, message: "Majburiy parametr yo‘q" },
-        });
+      if (!validateServiceId(params)) {
+        return res.json(paynetError(id, PAYNET_ERRORS.invalidService));
       }
 
-      if (!String(player_id).startsWith("5")) {
-        return res.json({
-          jsonrpc: "2.0",
-          id,
-          error: { code: 100, message: "player id 5 bilan boshlansin" },
-        });
+      const validated = validateFields(params.fields);
+      if (!validated.ok) {
+        return res.json(paynetError(id, validated.error));
       }
 
-      let exact_price = uc_s.find((item) => item.uc === "" + quantity);
-
-      if (!exact_price) {
-        return res.json({
-          jsonrpc: "2.0",
-          id,
-          error: {
-            code: 100,
-            message: "Miqdor noto‘g‘ri",
-          },
-        });
+      const price = UC_PACKAGES.get(validated.product);
+      if (!price) {
+        return res.json(paynetError(id, PAYNET_ERRORS.invalidQuantity));
       }
 
-      let price = exact_price.price;
+      const player = await checkPubgPlayer(validated.playerId);
+      if (!player) {
+        return res.json(
+          paynetError(id, {
+            ...PAYNET_ERRORS.invalidClient,
+            message: "Mijoz ma’lumotlari topilmadi",
+          }),
+        );
+      }
 
-      return res.json({
-        jsonrpc: "2.0",
-        id,
-        result: {
+      return res.json(
+        paynetResult(id, {
           status: "0",
           timestamp: dayjs().tz("Asia/Tashkent").format("YYYY-MM-DD HH:mm:ss"),
           fields: {
-            player_id,
+            player_id: player.userId,
+            player_name: player.username,
             amount: price,
           },
-        },
-      });
-    } catch (err) {
-      console.log("paynet pubg get error", err);
-      return res.json({
-        jsonrpc: "2.0",
-        id: id || null,
-        error: { code: -32603, message: "Tizim xatosi", err },
-      });
+        }),
+      );
+    } catch (error) {
+      console.error("Paynet PUBG GetInformation xatoligi:", error.message);
+      return res.json(paynetError(id, PAYNET_ERRORS.internalError));
     }
   }
 
   async performTransaction(req, res) {
+    const { id, params } = req.body;
+
     try {
-      let { id } = req.body;
-      let params = req.body.params;
-      let transactionId = params.transactionId;
-      let amount = params.amount;
-      let { player_id, quantity, price_amount } = params.fields;
-
-      if (
-        !amount ||
-        !player_id ||
-        !quantity ||
-        !price_amount ||
-        !transactionId
-      ) {
-        return res.json({
-          jsonrpc: "2.0",
-          id,
-          error: { code: -32602, message: "Majburiy parametr yo‘q" },
-        });
+      if (!validateServiceId(params)) {
+        return res.json(paynetError(id, PAYNET_ERRORS.invalidService));
       }
 
-      let transaction = await PUBG.findOne({ transId: transactionId });
+      const transactionId = String(params.transactionId ?? "").trim();
+      const amount = Number(params.amount);
 
-      if (transaction) {
-        return res.json({
-          jsonrpc: "2.0",
-          id,
-          error: {
-            code: 201,
-            message: "Транзакция уже существует",
-          },
-        });
+      if (!transactionId || !amount) {
+        return res.json(paynetError(id, PAYNET_ERRORS.invalidParams));
       }
 
-      if (!String(player_id).startsWith("5")) {
-        return res.json({
-          jsonrpc: "2.0",
-          id,
-          error: { code: 100, message: "player id 5 bilan boshlansin" },
-        });
+      const validated = validateFields(params.fields);
+      if (!validated.ok) {
+        return res.json(paynetError(id, validated.error));
       }
 
-      let exact_price = uc_s.find((item) => item.uc === "" + quantity);
-
-      if (!exact_price) {
-        return res.json({
-          jsonrpc: "2.0",
-          id,
-          error: {
-            code: 304,
-            message: "UC Miqdor noto‘g‘ri",
-          },
-        });
+      const price = UC_PACKAGES.get(validated.product);
+      if (!price) {
+        return res.json(paynetError(id, PAYNET_ERRORS.invalidQuantity));
       }
 
-      if (amount !== exact_price.price * 100) {
-        return res.json({
-          jsonrpc: "2.0",
-          id,
-          error: { code: 413, message: "Narx noto‘g‘ri" },
-        });
+      if (Number.isNaN(amount) || amount !== price * 100) {
+        return res.json(paynetError(id, PAYNET_ERRORS.invalidAmount));
       }
 
-      let order = await PUBG.create({
-        player_id,
-        amount,
-        price_amount: amount / 100,
+      const existingOrder = await PUBG.findOne({ transId: transactionId });
+      if (existingOrder) {
+        return res.json(paynetError(id, PAYNET_ERRORS.transactionExists));
+      }
+
+      const order = await PUBG.create({
+        player_id: validated.playerId,
+        amount: Number(validated.product),
+        price_amount: price,
         status: "success",
+        admin_status: "pending",
+        transId: transactionId,
+        from: "paynet",
+      });
+
+      try {
+        await sendPubgOrderToAdmins(order, {
+          quantity: validated.product,
+          source: "Paynet",
+        });
+      } catch (telegramError) {
+        console.error(
+          "PUBG buyurtmasini Telegramga yuborishda xatolik:",
+          telegramError.message,
+        );
+      }
+
+      return res.json(
+        paynetResult(id, {
+          timestamp: dayjs().tz("Asia/Tashkent").format("YYYY-MM-DD HH:mm:ss"),
+          providerTrnId: order._id,
+          fields: {
+            price: amount,
+            message: "To‘lov muvaffaqiyatli amalga oshirildi",
+          },
+        }),
+      );
+    } catch (error) {
+      if (error?.code === 11000) {
+        return res.json(paynetError(id, PAYNET_ERRORS.transactionExists));
+      }
+
+      console.error("Paynet PUBG PerformTransaction xatoligi:", error);
+      return res.json(paynetError(id, PAYNET_ERRORS.internalError));
+    }
+  }
+
+  async checkTransaction(req, res) {
+    const { id, params } = req.body;
+
+    try {
+      if (!validateServiceId(params)) {
+        return res.json(paynetError(id, PAYNET_ERRORS.invalidService));
+      }
+
+      const transactionId = String(params.transactionId ?? "").trim();
+      if (!transactionId) {
+        return res.json(paynetError(id, PAYNET_ERRORS.invalidParams));
+      }
+
+      const order = await PUBG.findOne({
         transId: transactionId,
         from: "paynet",
       });
 
       if (!order) {
-        return res.json({
-          jsonrpc: "2.0",
-          id,
-          error: {
-            code: 102,
-            message: "Transakziya bekor qilindi",
-          },
-        });
+        return res.json(paynetError(id, PAYNET_ERRORS.transactionNotFound));
       }
 
-      const message = [
-        `🆔 Player ID: <code>${player_id}</code>`,
-        `🪙 Miqdori: <b>${quantity}</b> UC`,
-        `💰 From: <b>Paynet</b>`,
-        `📅 Sana: <i>${order.createdAt.toLocaleString()}</i>`,
-      ].join("\n");
-
-      await bot.sendMessage(process.env.TG_GROUP_ID_PUBG, message, {
-        parse_mode: "HTML",
-      });
-
-      return res.json({
-        jsonrpc: "2.0",
-        id,
-        result: {
-          timestamp: dayjs().tz("Asia/Tashkent").format("YYYY-MM-DD HH:mm:ss"),
-          providerTrnId: order._id,
-          fields: {
-            price: exact_price.price * 100,
-            message: "To‘lov muvaffaqiyatli amalga oshirildi",
-          },
-        },
-      });
-    } catch (err) {
-      console.log("paynet pubg perform error", err);
-      return res.json({
-        jsonrpc: "2.0",
-        id: id || null,
-        error: { code: -32603, message: "Tizim xatosi", err },
-      });
-    }
-  }
-
-  async checkTransaction(req, res) {
-    try {
-      let { id, params } = req.body;
-      let transactionId = params.transactionId;
-
-      if (!transactionId) {
-        return res.json({
-          jsonrpc: "2.0",
-          id,
-          error: { code: -32602, message: "Majburiy parametr yo‘q" },
-        });
+      if (["failed", "reversed"].includes(order.status)) {
+        return res.json(paynetError(id, PAYNET_ERRORS.transactionCanceled));
       }
 
-      let order = await PUBG.findOne({ transId: transactionId });
-
-      if (!order) {
-        return res.json({
-          jsonrpc: "2.0",
-          id,
-          error: {
-            code: 203,
-            message: "Транзакция не найдена",
-          },
-        });
-      }
-
-      if (order.status !== "success") {
-        return res.json({
-          jsonrpc: "2.0",
-          id,
-          error: { code: 202, message: "tranzaksiya bekor qilingan" },
-        });
-      }
-
-      return res.json({
-        jsonrpc: "2.0",
-        id,
-        result: {
+      return res.json(
+        paynetResult(id, {
           transactionState: 1,
           timestamp: dayjs(order.updatedAt)
             .tz("Asia/Tashkent")
             .format("ddd MMM DD HH:mm:ss [UZT] YYYY"),
           providerTrnId: order._id,
-        },
-      });
+        }),
+      );
     } catch (error) {
-      console.error("Paynet pubg check error:", error);
-      return res.json({
-        jsonrpc: "2.0",
-        id: req.body.id || null,
-        error: { code: -32603, message: "Tizim xatosi", error },
-      });
+      console.error("Paynet PUBG CheckTransaction xatoligi:", error);
+      return res.json(paynetError(id, PAYNET_ERRORS.internalError));
     }
   }
 
   async getStatement(req, res) {
+    const { id, params } = req.body;
+
     try {
-      let { id, params } = req.body;
-      let { dateFrom, dateTo } = params;
-      let { serviceId } = params;
-
-      if (!dateFrom || !dateTo) {
-        return res.json({
-          jsonrpc: "2.0",
-          id,
-          error: { code: -32602, message: "Majburiy parametr yo‘q" },
-        });
+      if (!validateServiceId(params)) {
+        return res.json(paynetError(id, PAYNET_ERRORS.invalidService));
       }
 
-      if (![4].includes(serviceId)) {
-        return res.json({
-          jsonrpc: "2.0",
-          id,
-          error: { code: 305, message: "Invalid service id" },
-        });
+      const { dateFrom, dateTo } = params;
+      const fromDate = new Date(dateFrom);
+      const toDate = new Date(dateTo);
+
+      if (
+        !dateFrom ||
+        !dateTo ||
+        Number.isNaN(fromDate.getTime()) ||
+        Number.isNaN(toDate.getTime())
+      ) {
+        return res.json(paynetError(id, PAYNET_ERRORS.invalidParams));
       }
 
-      let order = await PUBG.find({
+      const orders = await PUBG.find({
         status: "success",
         from: "paynet",
         createdAt: {
-          $gte: new Date(dateFrom),
-          $lte: new Date(dateTo),
+          $gte: fromDate,
+          $lte: toDate,
         },
-      });
+      }).sort({ createdAt: 1 });
 
-      return res.json({
-        jsonrpc: "2.0",
-        id,
-        result: {
-          statements: order.map((item) => ({
-            transactionId: item.transId,
-            amount: item.price_amount * 100,
-            providerTrnId: item._id,
-            timestamp: dayjs(item.updatedAt)
+      return res.json(
+        paynetResult(id, {
+          statements: orders.map((order) => ({
+            transactionId: order.transId,
+            amount: order.price_amount * 100,
+            providerTrnId: order._id,
+            timestamp: dayjs(order.updatedAt)
               .tz("Asia/Tashkent")
               .format("YYYY-MM-DD HH:mm:ss"),
           })),
-        },
-      });
+        }),
+      );
     } catch (error) {
-      console.error("Paynet pubg getStatement error:", error);
-      return res.json({
-        jsonrpc: "2.0",
-        id: req.body.id || null,
-        error: { code: -32603, message: "Tizim xatosi", error },
-      });
+      console.error("Paynet PUBG GetStatement xatoligi:", error);
+      return res.json(paynetError(id, PAYNET_ERRORS.internalError));
     }
   }
 }
 
+export { PAYNET_ERRORS };
 export default new PubgPaynetController();

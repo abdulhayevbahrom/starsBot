@@ -1,14 +1,4 @@
-import { json } from "express";
-
 let permissons = [
-  {
-    login: "uzumloginfortg",
-    password: "uzumpasswordfortg",
-  },
-  {
-    login: "uzumloginformlbb",
-    password: "uzumpasswordformlbb",
-  },
   {
     login: "uzumloginforpubg",
     password: "uzumpasswordforpubg",
@@ -19,8 +9,11 @@ let permissons = [
   },
 ];
 
-let serviceIds = [7814652, 6515872, 4531225];
-let paynerSerivceIds = [1, 2, 3, 4];
+let serviceIds = [4531225];
+let paynerSerivceIds = [3, 4];
+const paynetPermission = permissons.find(
+  (item) => item.login === "paynetloginforservice",
+);
 
 class middlewares {
   async auth(req, res, next) {
@@ -39,7 +32,7 @@ class middlewares {
       let data = Buffer.from(token, "base64").toString("ascii");
       let [login, password] = data?.split(":");
 
-      let user = permissons.find(
+      const user = permissons.find(
         (item) => item.login === login && item.password === password,
       );
 
@@ -65,29 +58,28 @@ class middlewares {
 
   async authPaynet(req, res, next) {
     try {
-      const { id } = req.body;
+      const { id } = req.body ?? {};
       const token = req.headers.authorization?.split(" ")[1];
 
       if (!token) {
-        return res.json({
+        return res.status(401).json({
           jsonrpc: "2.0",
-          id,
-          error: { code: 411, message: "login or password not found" },
+          id: id ?? null,
+          error: { code: 411, message: "Login yoki parol topilmadi" },
         });
       }
 
       let data = Buffer.from(token, "base64").toString("ascii");
       let [login, password] = data?.split(":");
 
-      let user = permissons.find(
-        (item) => item.login === login && item.password === password,
-      );
+      const user =
+        paynetPermission?.login === login && paynetPermission?.password === password;
 
       if (!user) {
-        return res.json({
+        return res.status(401).json({
           jsonrpc: "2.0",
-          id,
-          error: { code: 401, message: "unauthorized" },
+          id: id ?? null,
+          error: { code: 412, message: "Login yoki parol noto‘g‘ri" },
         });
       }
 
@@ -97,8 +89,8 @@ class middlewares {
 
       return res.json({
         jsonrpc: "2.0",
-        id: req.body.id || null,
-        error: { code: -32603, message: "Tizim xatosi", err },
+        id: req.body?.id ?? null,
+        error: { code: -32603, message: "Tizim xatosi" },
       });
     }
   }
@@ -183,6 +175,28 @@ class middlewares {
         error: { code: -32603, message: "Tizim xatosi", err },
       });
     }
+  }
+
+  async checkPubgServiceIdPaynet(req, res, next) {
+    const { id, params } = req.body ?? {};
+
+    if (!params || typeof params !== "object") {
+      return res.json({
+        jsonrpc: "2.0",
+        id: id ?? null,
+        error: { code: -32602, message: "Majburiy parametr yo‘q" },
+      });
+    }
+
+    if (params.serviceId !== 4) {
+      return res.json({
+        jsonrpc: "2.0",
+        id: id ?? null,
+        error: { code: 305, message: "Invalid service id" },
+      });
+    }
+
+    next();
   }
 }
 

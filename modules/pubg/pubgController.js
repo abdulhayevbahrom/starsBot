@@ -1,5 +1,6 @@
-import bot from "../../bot/botConfig.js";
 import PUBG from "../../models/pubg.js";
+import { sendPubgOrderToAdmins } from "../../bot/pubgAdmin.js";
+import { checkPubgPlayer } from "./volsever.service.js";
 
 let uc_s = [
   {
@@ -28,7 +29,7 @@ let uc_s = [
   },
 ];
 
-class MLBBController {
+class PubgController {
   async check(req, res) {
     try {
       let { serviceId, params } = req.body;
@@ -43,7 +44,9 @@ class MLBBController {
         });
       }
 
-      if (!String(player_id).startsWith("5")) {
+      const player = await checkPubgPlayer(player_id);
+
+      if (!player) {
         return res.json({
           serviceId: serviceId,
           timestamp: Date.now(),
@@ -70,12 +73,13 @@ class MLBBController {
         timestamp: Date.now(),
         status: "OK",
         data: {
-          player_id: { value: player_id },
+          player_id: { value: player.userId },
+          name: { value: player.username },
           amount: { value: price + "" },
         },
       });
     } catch (error) {
-      console.log("uzum mlbb check error", error);
+      console.log("uzum pubg check error", error);
       return res.json({
         serviceId: req.body.serviceId,
         timestamp: Date.now(),
@@ -134,10 +138,11 @@ class MLBBController {
       }
 
       let order = await PUBG.create({
-        player_id,
-        amount,
+        player_id: String(player_id),
+        amount: Number(amount),
         price_amount: price_amount / 100,
         status: "success",
+        admin_status: "pending",
         transId: transId,
         from: "uzum",
       });
@@ -151,15 +156,14 @@ class MLBBController {
         });
       }
 
-      const message = [
-        `🆔 Player ID: <code>${player_id}</code>`,
-        `🪙 Miqdori: <b>${amount}</b> UC`,
-        `💰 From: <b>Uzum</b>``📅 Sana: <i>${order.createdAt.toLocaleString()}</i>`,
-      ].join("\n");
-
-      await bot.sendMessage(process.env.TG_GROUP_ID_PUBG, message, {
-        parse_mode: "HTML",
-      });
+      try {
+        await sendPubgOrderToAdmins(order, {
+          quantity: amount,
+          source: "Uzum",
+        });
+      } catch (telegramError) {
+        console.error("PUBG buyurtmasini Telegramga yuborishda xatolik:", telegramError);
+      }
 
       return res.json({
         serviceId: serviceId,
@@ -172,7 +176,7 @@ class MLBBController {
         amount: price_amount,
       });
     } catch (error) {
-      console.log("uzum mlbb create error", error);
+      console.log("uzum pubg create error", error);
       return res.json({
         serviceId: req.body.serviceId,
         timestamp: new Date().getTime(),
@@ -230,7 +234,7 @@ class MLBBController {
         amount: order.price_amount * 100,
       });
     } catch (error) {
-      console.log("uzum mlbb confirm error", error);
+      console.log("uzum pubg confirm error", error);
       return res.json({
         serviceId: req.body.serviceId,
         timestamp: Date.now(),
@@ -322,7 +326,7 @@ class MLBBController {
         errorCode: "10014",
       });
     } catch (error) {
-      console.log("uzum mlbb status error", error);
+      console.log("uzum pubg status error", error);
       return res.json({
         serviceId: req.body.serviceId,
         timestamp: Date.now(),
@@ -333,4 +337,4 @@ class MLBBController {
   }
 }
 
-export default new MLBBController();
+export default new PubgController();

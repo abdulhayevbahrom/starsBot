@@ -1,15 +1,17 @@
-# TON Stars / Premium Sotish Servisi
+# MLBB va PUBG to'lov servisi
 
 ## Ishga Tushirish
 1. `npm install`
-2. `.env` ni to'ldiring (mnemonic va address).
+2. `.env` faylini kerakli ulanish va bot sozlamalari bilan to'ldiring.
 3. `npm run dev` (dev) yoki `npm start` (prod).
 
 ## Test
 - Root: http://localhost:8070/
-- Order: POST /api/order (JSON: {username: "test", type: "stars", amount: 100})
-- Health: GET /health
+- MLBB: `/api/paynet/mlbb`
+- PUBG: `/api/uzum/pubg/*` va `/api/paynet/pubg`
 
-## Xavfsizlik
-- Mnemonic ni sir saqlang.
-- Production: HTTPS, rate-limit qo'shing.
+## PUBG sozlamalari
+
+- `VOLSEVER_API_KEY` — PUBG Mobile ID tekshirish kaliti
+- `TG_GROUP_ID_PUBG` — PUBG buyurtmalari yuboriladigan Telegram guruh ID'si
+- `ADMIN_IDS` — tugmalarni bosishi mumkin bo'lgan Telegram admin ID'lari

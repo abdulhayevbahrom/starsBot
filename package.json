@@ -18,7 +18,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@ton/crypto": "^3.3.0",
     "axios": "^1.13.2",
     "cors": "^2.8.5",
     "dayjs": "^1.11.13",
@@ -30,8 +29,6 @@
     "node-fetch": "^3.3.2",
     "node-telegram-bot-api": "^0.66.0",
     "nodemon": "^3.1.11",
-    "puppeteer": "^24.33.0",
-    "tonweb": "^0.0.66",
-    "tonweb-mnemonic": "^1.0.1"
+    "puppeteer": "^24.33.0"
   }
 }
