@@ -30,17 +30,23 @@ const answerCallback = async (queryId, options) => {
   }
 };
 
+const escapeHtml = (value) =>
+  String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+
 export async function sendPubgOrderToAdmins(order, options = {}) {
   const quantity = options.quantity ?? order.amount;
   const source = options.source ?? order.from;
   const playerName = options.playerName || order.player_name || "Noma'lum";
 
   const message = [
-    `🆔 Player ID: ${order.player_id}`,
-    `👤 Nickname: ${playerName}`,
-    `🪙 Miqdori: ${quantity} UC`,
-    `💰 Manba: ${source}`,
-    `📅 Sana: ${order.createdAt.toLocaleString()}`,
+    `🆔 Player ID: <code>${escapeHtml(order.player_id)}</code>`,
+    `👤 Nickname: ${escapeHtml(playerName)}`,
+    `🪙 Miqdori: ${escapeHtml(quantity)} UC`,
+    `💰 Manba: ${escapeHtml(source)}`,
+    `📅 Sana: ${escapeHtml(order.createdAt.toLocaleString())}`,
     "⏳ Admin holati: Kutilmoqda",
   ].join("\n");
 
@@ -48,6 +54,7 @@ export async function sendPubgOrderToAdmins(order, options = {}) {
     process.env.TG_GROUP_ID_PUBG,
     message,
     {
+      parse_mode: "HTML",
       reply_markup: {
         inline_keyboard: [
           [
