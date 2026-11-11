@@ -9,6 +9,9 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 
 const PUBG_SERVICE_ID = 4;
+const PLAYER_CACHE_TTL_MS = 30 * 60 * 1000;
+const PLAYER_CACHE_MAX_SIZE = 100;
+const playerCache = new Map();
 
 const PAYNET_ERRORS = {
   invalidRequest: { code: -32600, message: "Method ko‘rsatilmagan" },
@@ -74,6 +77,41 @@ function validateFields(fields = {}) {
   return { ok: true, playerId, product };
 }
 
+function cachePlayer(playerId, player) {
+  const now = Date.now();
+
+  if (playerCache.size >= PLAYER_CACHE_MAX_SIZE) {
+    for (const [cachedPlayerId, cached] of playerCache) {
+      if (cached.expiresAt <= now) {
+        playerCache.delete(cachedPlayerId);
+      }
+    }
+
+    if (playerCache.size >= PLAYER_CACHE_MAX_SIZE) {
+      const oldestPlayerId = playerCache.keys().next().value;
+      playerCache.delete(oldestPlayerId);
+    }
+  }
+
+  playerCache.set(playerId, {
+    username: player.username,
+    resolvedPlayerId: player.userId,
+    expiresAt: now + PLAYER_CACHE_TTL_MS,
+  });
+}
+
+function getCachedPlayer(playerId) {
+  const cached = playerCache.get(playerId);
+  if (!cached) return null;
+
+  if (cached.expiresAt <= Date.now()) {
+    playerCache.delete(playerId);
+    return null;
+  }
+
+  return cached;
+}
+
 class PubgPaynetController {
   dispatch(req, res) {
     const { id, jsonrpc, method, params } = req.body ?? {};
@@ -124,6 +162,8 @@ class PubgPaynetController {
           }),
         );
       }
+
+      cachePlayer(validated.playerId, player);
 
       return res.json(
         paynetResult(id, {
@@ -176,8 +216,11 @@ class PubgPaynetController {
         return res.json(paynetError(id, PAYNET_ERRORS.transactionExists));
       }
 
+      const playerProfile = getCachedPlayer(validated.playerId);
+
       const order = await PUBG.create({
-        player_id: validated.playerId,
+        player_id: playerProfile?.resolvedPlayerId || validated.playerId,
+        player_name: playerProfile?.username || null,
         amount: Number(validated.product),
         price_amount: price,
         status: "success",
@@ -185,6 +228,8 @@ class PubgPaynetController {
         transId: transactionId,
         from: "paynet",
       });
+
+      playerCache.delete(validated.playerId);
 
       try {
         await sendPubgOrderToAdmins(order, {
