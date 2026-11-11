@@ -2,41 +2,11 @@ import express from "express";
 
 import paynetMlbb from "../modules/mlbb/paynetMlbb.js";
 
-import pubgController from "../modules/pubg/pubgController.js";
-// pubg paynet
 import paynetPubg from "../modules/pubg/pubgPaynet.js";
 
 import middlewares from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
-
-// uzum pubg
-
-router.post(
-  "/uzum/pubg/check",
-  [middlewares.auth, middlewares.checkServiceId],
-  pubgController.check,
-);
-
-router.post(
-  "/uzum/pubg/create",
-  [middlewares.auth, middlewares.checkServiceId],
-  pubgController.create,
-);
-
-router.post(
-  "/uzum/pubg/confirm",
-  [middlewares.auth, middlewares.checkServiceId],
-  pubgController.confirm,
-);
-
-router.post(
-  "/uzum/pubg/status",
-  [middlewares.auth, middlewares.checkServiceId],
-  pubgController.status,
-);
-
-// ===========================================================
 
 router.post(
   "/paynet/mlbb",

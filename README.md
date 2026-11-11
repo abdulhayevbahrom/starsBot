@@ -8,7 +8,7 @@
 ## Test
 - Root: http://localhost:8070/
 - MLBB: `/api/paynet/mlbb`
-- PUBG: `/api/uzum/pubg/*` va `/api/paynet/pubg`
+- PUBG: `/api/paynet/pubg`
 
 ## PUBG sozlamalari
 
