@@ -3,8 +3,8 @@ import { sendPubgOrderToAdmins } from "../../bot/pubgAdmin.js";
 import { checkPubgPlayer } from "./volsever.service.js";
 import { getNextSequence } from "../../services/counter.service.js";
 import {
+  parseTashkentTimestamp,
   tashkentTimestamp,
-  tashkentTransactionTimestamp,
 } from "../../utils/time.js";
 
 const PUBG_SERVICE_ID = 4;
@@ -93,8 +93,7 @@ function cachePlayer(playerId, player) {
   }
 
   playerCache.set(playerId, {
-    username: player.username,
-    resolvedPlayerId: player.userId,
+    player,
     expiresAt: now + PLAYER_CACHE_TTL_MS,
   });
 }
@@ -108,7 +107,14 @@ function getCachedPlayer(playerId) {
     return null;
   }
 
-  return cached;
+  return cached.player;
+}
+
+function serializeTransactionId(transactionId) {
+  const numericId = Number(transactionId);
+  return Number.isSafeInteger(numericId) && String(numericId) === transactionId
+    ? numericId
+    : transactionId;
 }
 
 async function ensureProviderTrnId(order) {
@@ -241,14 +247,20 @@ class PubgPaynetController {
         return res.json(paynetError(id, PAYNET_ERRORS.transactionExists));
       }
 
-      const playerProfile = getCachedPlayer(validated.playerId);
+      const player =
+        getCachedPlayer(validated.playerId) ||
+        (await checkPubgPlayer(validated.playerId));
+      if (!player) {
+        return res.json(paynetError(id, PAYNET_ERRORS.invalidClient));
+      }
+
       const providerTrnId = await getNextSequence(
         "pubg_provider_transaction",
       );
 
       const order = await PUBG.create({
-        player_id: playerProfile?.resolvedPlayerId || validated.playerId,
-        player_name: playerProfile?.username || null,
+        player_id: player.userId,
+        player_name: player.username,
         amount: Number(validated.product),
         price_amount: price,
         status: "success",
@@ -274,9 +286,12 @@ class PubgPaynetController {
 
       return res.json(
         paynetResult(id, {
-          timestamp: tashkentTimestamp(),
+          timestamp: tashkentTimestamp(order.createdAt),
           providerTrnId,
           fields: {
+            player_id: player.userId,
+            player_name: player.username,
+            amount: price,
             price: amount,
             message: "To‘lov muvaffaqiyatli amalga oshirildi",
           },
@@ -323,7 +338,7 @@ class PubgPaynetController {
       return res.json(
         paynetResult(id, {
           transactionState: 1,
-          timestamp: tashkentTransactionTimestamp(order.updatedAt),
+          timestamp: tashkentTimestamp(order.createdAt ?? order.updatedAt),
           providerTrnId,
         }),
       );
@@ -342,8 +357,8 @@ class PubgPaynetController {
       }
 
       const { dateFrom, dateTo } = params;
-      const fromDate = new Date(dateFrom);
-      const toDate = new Date(dateTo);
+      const fromDate = parseTashkentTimestamp(dateFrom);
+      const toDate = parseTashkentTimestamp(dateTo);
 
       if (
         !dateFrom ||
@@ -365,10 +380,10 @@ class PubgPaynetController {
 
       const statements = await Promise.all(
         orders.map(async (order) => ({
-          transactionId: order.transId,
+          transactionId: serializeTransactionId(order.transId),
           amount: order.price_amount * 100,
           providerTrnId: await ensureProviderTrnId(order),
-          timestamp: tashkentTimestamp(order.updatedAt),
+          timestamp: tashkentTimestamp(order.createdAt),
         })),
       );
 
