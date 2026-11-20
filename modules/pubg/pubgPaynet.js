@@ -201,7 +201,6 @@ class PubgPaynetController {
           status: "0",
           timestamp: tashkentTimestamp(),
           fields: {
-            player_id: player.userId,
             player_name: player.username,
             amount: price,
           },
@@ -262,7 +261,7 @@ class PubgPaynetController {
         player_id: player.userId,
         player_name: player.username,
         amount: Number(validated.product),
-        price_amount: price,
+        price_amount: amount / 100,
         status: "success",
         admin_status: "pending",
         transId: transactionId,
@@ -291,9 +290,6 @@ class PubgPaynetController {
           fields: {
             player_id: player.userId,
             player_name: player.username,
-            amount: price,
-            price: amount,
-            message: "To‘lov muvaffaqiyatli amalga oshirildi",
           },
         }),
       );
